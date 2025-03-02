@@ -1,0 +1,77 @@
+
+D:\dev\otus-highload\lesson-01>newman run ./"postman/Social Network API.postman_collection.json" 
+newman
+
+Social Network API
+
+→ Регистрация пользователя
+  GET https://cdnjs.cloudflare.com/ajax/libs/Faker/3.1.0/faker.min.js [200 OK, 786.93kB, 219ms]
+  POST http://localhost:8000/user/register [200 OK, 175B, 41ms]
+  ┌
+  │ 'Запрос'
+  │ {
+  │   first_name: 'Chyna',
+  │   second_name: 'Ziemann',
+  │   birthdate: '2000-01-01',
+  │   biography: 'Ipsam atque non fugiat accusamus aut.',
+  │   city: 'Lake Juliana',
+  │   password: 'ov4jvbQg3nc2eSf'
+  │ }
+  │ 'Ответ'
+  │ {
+  │   user_id: '82867887-8143-4842-a4e2-49cdb2e4c668'
+  │ }
+  └
+  √  Регистрация пользователя
+
+→ Авторизация
+  POST http://localhost:8000/login [200 OK, 169B, 33ms]
+  ┌
+  │ 'Запрос'
+  │ {
+  │   id: '82867887-8143-4842-a4e2-49cdb2e4c668',
+  │   password: 'ov4jvbQg3nc2eSf'
+  │ }
+  │ 'Ответ'
+  │ {
+  │   token: 'a6fb005de8ca7dcf3f6baa950be36f69'
+  │ }
+  └
+  √  Авторизация пользователя
+
+→ Получение анкеты пользователя
+  GET http://localhost:8000/user/get/82867887-8143-4842-a4e2-49cdb2e4c668 [200 OK, 315B, 36ms]
+  ┌
+  │ 'Запрос'
+  │ 'Authorization: Bearer a6fb005de8ca7dcf3f6baa950be36f6
+  │ 9'
+  │ 'Ответ'
+  │ {
+  │   id: '82867887-8143-4842-a4e2-49cdb2e4c668',
+  │   first_name: 'Chyna',
+  │   second_name: 'Ziemann',
+  │   birthdate: '2000-01-01',
+  │   biography: 'Ipsam atque non fugiat accusamus aut.',
+  │   city: 'Lake Juliana'
+  │ }
+  └
+
+┌─────────────────────────┬───────────────────┬───────────────────┐
+│                         │          executed │            failed │
+├─────────────────────────┼───────────────────┼───────────────────┤
+│              iterations │                 1 │                 0 │
+├─────────────────────────┼───────────────────┼───────────────────┤
+│                requests │                 4 │                 0 │
+├─────────────────────────┼───────────────────┼───────────────────┤
+│            test-scripts │                 6 │                 0 │
+├─────────────────────────┼───────────────────┼───────────────────┤
+│      prerequest-scripts │                 6 │                 0 │
+├─────────────────────────┼───────────────────┼───────────────────┤
+│              assertions │                 2 │                 0 │
+├─────────────────────────┴───────────────────┴───────────────────┤
+│ total run duration: 1661ms                                      │
+├─────────────────────────────────────────────────────────────────┤
+│ total data received: 786.18kB (approx)                          │
+├─────────────────────────────────────────────────────────────────┤
+│ average response time: 82ms [min: 33ms, max: 219ms, s.d.: 79ms] │
+└─────────────────────────────────────────────────────────────────┘

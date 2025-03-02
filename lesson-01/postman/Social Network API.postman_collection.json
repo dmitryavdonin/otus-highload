@@ -1,0 +1,268 @@
+{
+	"info": {
+		"_postman_id": "c2769bac-907e-4d2a-b12e-7abdb1e6e03a",
+		"name": "Social Network API",
+		"description": "Коллекция для тестирования API социальной сети",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "795865",
+		"_collection_link": "https://otus-dmitryavdonin.postman.co/workspace/otus~82993246-0f01-4d25-adef-9e5b9e2d034b/collection/795865-c2769bac-907e-4d2a-b12e-7abdb1e6e03a?action=share&source=collection_link&creator=795865"
+	},
+	"item": [
+		{
+			"name": "Регистрация пользователя",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"window = {};\r",
+							"\r",
+							"pm.sendRequest(\"https://cdnjs.cloudflare.com/ajax/libs/Faker/3.1.0/faker.min.js\", (error, response) => {\r",
+							"    if (error || response.code !== 200) {\r",
+							"        console.log(error)\r",
+							"        pm.expect.fail('Could not load external library');\r",
+							"    }\r",
+							"    eval(response.text());\r",
+							"    // This is where you can set the locale. See faker.js docs for all available locales.\r",
+							"    window.faker.locale=\"en\";\r",
+							"    pm.collectionVariables.set(\"password\", window.faker.internet.password());\r",
+							"    pm.collectionVariables.set(\"first_name\", window.faker.name.firstName());\r",
+							"    pm.collectionVariables.set(\"second_name\", window.faker.name.lastName());\r",
+							"    pm.collectionVariables.set(\"birthdate\",\"2000-01-01\");\r",
+							"    pm.collectionVariables.set(\"biography\",window.faker.lorem.sentence());\r",
+							"    pm.collectionVariables.set(\"city\",window.faker.address.city());\r",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Регистрация пользователя\", function () {\r",
+							"    console.log(\"Запрос\");\r",
+							"    console.log(JSON.parse(pm.request.body.raw));\r",
+							"    console.log(\"Ответ\");\r",
+							"    console.log(pm.response.json());\r",
+							"    pm.collectionVariables.set(\"user_id\", pm.response.json()[\"user_id\"])        \r",
+							"    pm.response.to.have.status(200);\r",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"first_name\": \"{{first_name}}\",\n    \"second_name\": \"{{second_name}}\",\n    \"birthdate\": \"{{birthdate}}\",\n    \"biography\": \"{{biography}}\",\n    \"city\": \"{{city}}\",\n    \"password\": \"{{password}}\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8000/user/register",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"user",
+						"register"
+					]
+				},
+				"description": "Регистрация нового пользователя"
+			},
+			"response": []
+		},
+		{
+			"name": "Авторизация",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Авторизация пользователя\", function () {\r",
+							"    console.log(\"Запрос\");\r",
+							"    console.log(JSON.parse(pm.request.body.raw));\r",
+							"    console.log(\"Ответ\");\r",
+							"    console.log(pm.response.json());\r",
+							"    pm.collectionVariables.set(\"token\", pm.response.json()[\"token\"])        \r",
+							"    pm.response.to.have.status(200);\r",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"id\": \"{{user_id}}\",\n    \"password\": \"{{password}}\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8000/login",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"login"
+					]
+				},
+				"description": "Авторизация пользователя"
+			},
+			"response": []
+		},
+		{
+			"name": "Получение анкеты пользователя",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"console.log(\"Запрос\");\r",
+							"console.log(\"Authorization: \" + pm.request.headers.get(\"Authorization\"));\r",
+							"console.log(\"Ответ\");\r",
+							"console.log(pm.response.json());\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8000/user/get/{{user_id}}",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"user",
+						"get",
+						"{{user_id}}"
+					]
+				},
+				"description": "Получение анкеты пользователя по ID"
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Сохранение токена после успешной авторизации",
+					"if (pm.response.code === 200 && pm.response.json().token) {",
+					"    pm.environment.set(\"token\", pm.response.json().token);",
+					"}",
+					"",
+					"// Сохранение ID пользователя после успешной регистрации",
+					"if (pm.response.code === 200 && pm.response.json().user_id) {",
+					"    pm.environment.set(\"user_id\", pm.response.json().user_id);",
+					"}"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "user_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "password",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "first_name",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "second_name",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "birthdate",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "biography",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "city",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

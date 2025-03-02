@@ -1,0 +1,1 @@
+newman run ./"postman/Social Network API.postman_collection.json"
