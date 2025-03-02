@@ -9,7 +9,7 @@
 ### Шаги по запуску
 1. Клонируйте репозиторий:
    ```bash
-   git clone <URL репозитория>
+   git clone https://github.com/dmitryavdonin/otus-highload.git
    cd otus-highload/lesson-01
    ```
 
@@ -37,7 +37,7 @@
 
 1. Клонируйте репозиторий:
    ```bash
-   git clone <URL репозитория>
+   git clone https://github.com/dmitryavdonin/otus-highload.git
    cd otus-highload/lesson-01
    ```
 
