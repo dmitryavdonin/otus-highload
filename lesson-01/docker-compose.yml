@@ -11,14 +11,14 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql
+      # Не монтируем schema.sql, чтобы не перезаписать существующую базу данных
 
   app:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "9000:9000"
     depends_on:
       - db
     environment:

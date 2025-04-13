@@ -1,0 +1,64 @@
+version: '3.1'
+
+services:
+  app:
+    build: .
+    ports:
+      - "9000:9000"
+    depends_on:
+      - postgres-master
+      - postgres-slave1
+      - postgres-slave2
+
+  postgres-master:
+    build:
+      context: .
+      dockerfile: Dockerfile.master
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data_new
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=postgres
+      - PGDATA=/var/lib/postgresql/data_new
+
+  postgres-slave1:
+    build:
+      context: .
+      dockerfile: Dockerfile.slave
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_slave1_data:/var/lib/postgresql/data_new
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=postgres
+      - MASTER_HOST=postgres-master
+      - PGDATA=/var/lib/postgresql/data_new
+    depends_on:
+      - postgres-master
+
+  postgres-slave2:
+    build:
+      context: .
+      dockerfile: Dockerfile.slave
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_slave2_data:/var/lib/postgresql/data_new
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=postgres
+      - MASTER_HOST=postgres-master
+      - PGDATA=/var/lib/postgresql/data_new
+    depends_on:
+      - postgres-master
+
+volumes:
+  postgres_data:
+  postgres_slave1_data:
+  postgres_slave2_data:

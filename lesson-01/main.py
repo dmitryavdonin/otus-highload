@@ -1,17 +1,17 @@
-from fastapi import FastAPI, HTTPException, Depends, status
+from fastapi import FastAPI, HTTPException, Depends, status, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from models import UserRegisterRequest, UserResponse, LoginRequest, LoginResponse, UserIdResponse
+from models import UserRegisterRequest, UserResponse, LoginRequest, LoginResponse, UserIdResponse, VersionResponse
 from db import get_db_cursor
 from datetime import datetime, timedelta
 import secrets
 import hashlib
 import uuid
-from typing import Optional
+from typing import Optional, List
 
 app = FastAPI(
     title="Social Network API",
     description="A simple social network API",
-    version="0.1.0"
+    version="0.2.0"
 )
 
 security = HTTPBearer()
@@ -139,3 +139,74 @@ def get_user(user_id: str):
             biography=user["biography"],
             city=user["city"]
         )
+
+
+@app.get("/user/search", response_model=List[UserResponse], tags=["Users"])
+def search_users(
+    first_name: Optional[str] = None,
+    second_name: Optional[str] = None
+):
+    """
+    Search for users by first name and/or second name
+    
+    This endpoint searches for users where the first name or second name starts with the provided text.
+    This approach efficiently uses database indexes for better performance.
+    
+    - **first_name**: Optional first name to search for (matches from the beginning of the name)
+    - **second_name**: Optional second name to search for (matches from the beginning of the name)
+    
+    At least one of first_name or second_name must be provided.
+    """
+    if not first_name and not second_name:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="At least one search parameter (first_name or second_name) must be provided"
+        )
+    
+    with get_db_cursor() as cursor:
+        # Construct the query dynamically based on provided parameters
+        query = """
+            SELECT id, first_name, second_name, birthdate, biography, city
+            FROM users
+            WHERE 1=1
+        """
+        params = []
+        
+        # Add conditions based on provided parameters
+        if first_name:
+            query += " AND first_name LIKE %s"
+            params.append(f"{first_name}%")
+        
+        if second_name:
+            query += " AND second_name LIKE %s"
+            params.append(f"{second_name}%")
+        
+        # Add ordering
+        query += " ORDER BY id"
+        
+        # Execute the query
+        cursor.execute(query, params)
+        
+        users = cursor.fetchall()
+        return [
+            UserResponse(
+                id=user["id"],
+                first_name=user["first_name"],
+                second_name=user["second_name"],
+                birthdate=user["birthdate"],
+                biography=user["biography"],
+                city=user["city"]
+            )
+            for user in users
+        ]
+
+
+
+
+
+@app.get("/version", response_model=VersionResponse, tags=["System"])
+def get_version():
+    """
+    Get the current version of the application
+    """
+    return VersionResponse(version=app.version)

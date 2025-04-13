@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 from datetime import date
 
 
@@ -32,3 +32,7 @@ class LoginResponse(BaseModel):
 
 class UserIdResponse(BaseModel):
     user_id: str = Field(..., description="Идентификатор пользователя")
+
+
+class VersionResponse(BaseModel):
+    version: str = Field(..., description="Версия приложения")
