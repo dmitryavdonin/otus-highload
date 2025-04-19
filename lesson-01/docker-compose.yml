@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  db:
+  db-master:
     image: postgres:15
     environment:
       POSTGRES_USER: postgres
@@ -10,8 +10,41 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      # Не монтируем schema.sql, чтобы не перезаписать существующую базу данных
+      - postgres_master_data:/var/lib/postgresql/data
+      - ./init-master.sh:/docker-entrypoint-initdb.d/init-master.sh
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql
+      - ../backups/social_network_backup_20250413_223058.dump:/docker-entrypoint-initdb.d/backup.dump
+    command: postgres -c wal_level=replica -c max_wal_senders=10 -c max_replication_slots=10
+
+  db-slave1:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: social_network
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_slave1_data:/var/lib/postgresql/data
+      - ./start-slave.sh:/start-slave.sh
+    depends_on:
+      - db-master
+    command: /start-slave.sh
+
+  db-slave2:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: social_network
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_slave2_data:/var/lib/postgresql/data
+      - ./start-slave.sh:/start-slave.sh
+    depends_on:
+      - db-master
+    command: /start-slave.sh
 
   app:
     build:
@@ -20,13 +53,19 @@ services:
     ports:
       - "9000:9000"
     depends_on:
-      - db
+      - db-master
+      - db-slave1
+      - db-slave2
     environment:
-      - DB_HOST=db
+      - DB_HOST=db-master
+      - DB_SLAVE1_HOST=db-slave1
+      - DB_SLAVE2_HOST=db-slave2
       - DB_PORT=5432
       - DB_NAME=social_network
       - DB_USER=postgres
       - DB_PASSWORD=postgres
 
 volumes:
-  postgres_data:
+  postgres_master_data:
+  postgres_slave1_data:
+  postgres_slave2_data:

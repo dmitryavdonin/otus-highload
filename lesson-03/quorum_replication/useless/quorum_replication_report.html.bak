@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Отчет о настройке кворумной синхронной репликации PostgreSQL</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        h1 {
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            margin-top: 30px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+        pre {
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            padding: 10px;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        code {
+            background-color: #f8f8f8;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .step {
+            margin-bottom: 30px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-left: 4px solid #3498db;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #e8f4fc;
+            border-radius: 3px;
+        }
+        .architecture {
+            margin: 20px 0;
+            text-align: center;
+        }
+        .architecture img {
+            max-width: 100%;
+        }
+        .highlight {
+            background-color: #ffffcc;
+            padding: 2px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Отчет о настройке кворумной синхронной репликации PostgreSQL</h1>
+    
+    <h2>Цель эксперимента</h2>
+    <p>
+        Настроить кворумную синхронную репликацию PostgreSQL с одним мастером и тремя репликами, 
+        протестировать отказоустойчивость при отключении реплики и мастера.
+    </p>
+    
+    <h2>Архитектура кластера</h2>
+    <div class="architecture">
+        <p>Кластер PostgreSQL состоит из следующих компонентов:</p>
+        <ul>
+            <li><strong>Мастер (pg-master)</strong> - основной сервер, принимающий запросы на запись</li>
+            <li><strong>Слейв 1 (pg-slave1)</strong> - реплика, синхронно получающая данные от мастера</li>
+            <li><strong>Слейв 2 (pg-slave2)</strong> - реплика, синхронно получающая данные от мастера</li>
+            <li><strong>Слейв 3 (pg-slave3)</strong> - реплика, синхронно получающая данные от мастера</li>
+        </ul>
+        <p>
+            Кворумная синхронная репликация настроена таким образом, что транзакция считается 
+            подтвержденной, когда она записана на диск мастера и подтверждена любыми двумя из трех слейвов.
+        </p>
+    </div>
+    
+    <h2>Подготовка окружения</h2>
+    <div class="step">
+        <h3>Шаг 1: Создание Docker Compose файла</h3>
+        <p>
+            Для запуска кластера PostgreSQL с одним мастером и тремя слейвами был создан файл 
+            <code>docker-compose-quorum-simple.yml</code>:
+        </p>
+        <pre>
+version: '3'
+
+services:
+  master:
+    image: postgres:15
+    container_name: pg-master
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: testdb
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./pg-master-data:/var/lib/postgresql/data
+      - ./init-master.sh:/docker-entrypoint-initdb.d/init-master.sh
+    networks:
+      - postgres-network
+
+  slave1:
+    image: postgres:15
+    container_name: pg-slave1
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: testdb
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./pg-slave1-data:/var/lib/postgresql/data
+      - ./init-slave1.sh:/docker-entrypoint-initdb.d/init-slave1.sh
+    depends_on:
+      - master
+    networks:
+      - postgres-network
+
+  slave2:
+    image: postgres:15
+    container_name: pg-slave2
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: testdb
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5434:5432"
+    volumes:
+      - ./pg-slave2-data:/var/lib/postgresql/data
+      - ./init-slave2.sh:/docker-entrypoint-initdb.d/init-slave2.sh
+    depends_on:
+      - master
+    networks:
+      - postgres-network
+
+  slave3:
+    image: postgres:15
+    container_name: pg-slave3
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: testdb
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5435:5432"
+    volumes:
+      - ./pg-slave3-data:/var/lib/postgresql/data
+      - ./init-slave3.sh:/docker-entrypoint-initdb.d/init-slave3.sh
+    depends_on:
+      - master
+    networks:
+      - postgres-network
+
+networks:
+  postgres-network:
+    driver: bridge
+        </pre>
+    </div>
+
+    <div class="step">
+        <h3>Шаг 2: Создание скрипта инициализации мастера</h3>
+        <p>
+            Для настройки мастера был создан скрипт <code>init-master.sh</code>, который выполняется 
+            при первом запуске контейнера:
+        </p>
+        <pre>
+#!/bin/bash
+set -e
+
+# Настройка PostgreSQL для прослушивания всех интерфейсов
+cat >> /var/lib/postgresql/data/postgresql.conf << EOF
+listen_addresses = '*'
+wal_level = replica
+max_wal_senders = 10
+max_replication_slots = 10
+synchronous_commit = on
+synchronous_standby_names = 'ANY 2 (slave1, slave2, slave3)'
+EOF
+
+# Настройка доступа для репликации
+cat >> /var/lib/postgresql/data/pg_hba.conf << EOF
+host replication postgres all md5
+host all postgres all md5
+EOF
+
+# Создание тестовой таблицы
+psql -U postgres -d testdb << EOF
+CREATE TABLE test_table (id SERIAL PRIMARY KEY, data TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+EOF
+
+# Создание слотов репликации
+psql -U postgres << EOF
+SELECT pg_create_physical_replication_slot('slave1_slot');
+SELECT pg_create_physical_replication_slot('slave2_slot');
+SELECT pg_create_physical_replication_slot('slave3_slot');
+EOF
+        </pre>
+        <p>
+            Ключевые настройки в этом скрипте:
+        </p>
+        <ul>
+            <li><code>wal_level = replica</code> - уровень журналирования, необходимый для репликации</li>
+            <li><code>max_wal_senders = 10</code> - максимальное количество процессов для отправки WAL</li>
+            <li><code>max_replication_slots = 10</code> - максимальное количество слотов репликации</li>
+            <li><code>synchronous_commit = on</code> - включение синхронной фиксации транзакций</li>
+            <li><code>synchronous_standby_names = 'ANY 2 (slave1, slave2, slave3)'</code> - настройка кворумной репликации, требующая подтверждения от любых двух из трех слейвов</li>
+        </ul>
+    </div>
+
+    <div class="step">
+        <h3>Шаг 3: Создание скриптов инициализации слейвов</h3>
+        <p>
+            Для каждого слейва был создан скрипт инициализации. Пример для <code>init-slave1.sh</code>:
+        </p>
+        <pre>
+#!/bin/bash
+set -e
+
+# Ожидание доступности мастера
+until pg_isready -h master -p 5432 -U postgres; do
+    echo "Waiting for master to be ready..."
+    sleep 1
+done
+
+# Остановка PostgreSQL
+pg_ctl -D /var/lib/postgresql/data -m fast -w stop
+
+# Очистка директории данных
+rm -rf /var/lib/postgresql/data/*
+
+# Создание базового бэкапа
+pg_basebackup -h master -p 5432 -U postgres -D /var/lib/postgresql/data -P -R -X stream -S slave1_slot
+
+# Настройка репликации
+cat > /var/lib/postgresql/data/postgresql.auto.conf << EOF
+primary_conninfo = 'host=master port=5432 user=postgres password=postgres application_name=slave1'
+primary_slot_name = 'slave1_slot'
+EOF
+
+# Создание файла standby.signal
+touch /var/lib/postgresql/data/standby.signal
+
+# Запуск PostgreSQL
+pg_ctl -D /var/lib/postgresql/data -w start
+        </pre>
+        <p>
+            Аналогичные скрипты были созданы для <code>slave2</code> и <code>slave3</code> с соответствующими 
+            изменениями в именах слотов и application_name.
+        </p>
+    </div>
+
+    <h2>Запуск и проверка кластера</h2>
+    <div class="step">
+        <h3>Шаг 4: Запуск кластера</h3>
+        <p>
+            Кластер был запущен с помощью следующих команд:
+        </p>
+        <pre>
+# Удаление старых контейнеров и данных
+docker rm -f pg-master pg-slave1 pg-slave2 pg-slave3
+rm -rf pg-master-data pg-slave1-data pg-slave2-data pg-slave3-data
+
+# Запуск кластера
+docker-compose -f docker-compose-quorum-simple.yml down -v
+docker-compose -f docker-compose-quorum-simple.yml up -d
+        </pre>
+    </div>
+
+    <div class="step">
+        <h3>Шаг 5: Проверка статуса репликации</h3>
+        <p>
+            После запуска кластера был проверен статус репликации:
+        </p>
+        <pre>
+docker exec pg-master psql -U postgres -c "SELECT application_name, sync_state, sync_priority FROM pg_stat_replication;"
+        </pre>
+        <div class="result">
+            <p>Результат:</p>
+            <pre>
+ application_name | sync_state | sync_priority
+-----------------+------------+---------------
+ slave1          | quorum     |             1
+ slave2          | quorum     |             1
+ slave3          | quorum     |             1
+            </pre>
+        </div>
+        <p>
+            Все три слейва подключены к мастеру и находятся в состоянии 'quorum', что означает, 
+            что кворумная синхронная репликация работает корректно.
+        </p>
+    </div>
+
+    <h2>Тестирование отказоустойчивости</h2>
+    <div class="step">
+        <h3>Шаг 6: Создание тестовых данных</h3>
+        <p>
+            Для тестирования в таблицу были вставлены тестовые данные:
+        </p>
+        <pre>
+docker exec pg-master psql -U postgres -d testdb -c "INSERT INTO test_table (data) SELECT 'test data ' || generate_series(1, 100);"
+        </pre>
+        <div class="result">
+            <p>Проверка количества записей:</p>
+            <pre>
+docker exec pg-master psql -U postgres -d testdb -c "SELECT COUNT(*) FROM test_table;"
+
+ count
+-------
+   100
+            </pre>
+        </div>
+    </div>
+
+    <div class="step">
+        <h3>Шаг 7: Тестирование отказа одного слейва</h3>
+        <p>
+            Для имитации отказа одного из слейвов был остановлен контейнер <code>pg-slave3</code>:
+        </p>
+        <pre>
+docker stop pg-slave3
+        </pre>
+        <p>
+            После остановки слейва был проверен статус репликации:
+        </p>
+        <pre>
+docker exec pg-master psql -U postgres -c "SELECT application_name, sync_state, sync_priority FROM pg_stat_replication;"
+        </pre>
+        <div class="result">
+            <p>Результат:</p>
+            <pre>
+ application_name | sync_state | sync_priority
+-----------------+------------+---------------
+ slave1          | quorum     |             1
+ slave2          | quorum     |             1
+            </pre>
+        </div>
+        <p>
+            Остались только <code>slave1</code> и <code>slave2</code> в состоянии 'quorum'. 
+            Поскольку настройка <code>synchronous_standby_names = 'ANY 2 (slave1, slave2, slave3)'</code> 
+            требует подтверждения от любых двух из трех слейвов, кластер продолжает работать в синхронном режиме.
+        </p>
+    </div>
+
+    <div class="step">
+        <h3>Шаг 8: Проверка работоспособности после отказа одного слейва</h3>
+        <p>
+            Для проверки работоспособности кластера после отказа одного слейва были вставлены новые данные:
+        </p>
+        <pre>
+docker exec pg-master psql -U postgres -d testdb -c "INSERT INTO test_table (data) SELECT 'test data ' || generate_series(101, 200);"
+        </pre>
+        <div class="result">
+            <p>Проверка количества записей:</p>
+            <pre>
+docker exec pg-master psql -U postgres -d testdb -c "SELECT COUNT(*) FROM test_table;"
+
+ count
+-------
+   200
+            </pre>
+        </div>
+        <p>
+            Вставка данных прошла успешно, что подтверждает работоспособность кластера после отказа одного слейва.
+        </p>
+    </div>
+
+    <div class="step">
+        <h3>Шаг 9: Тестирование отказа мастера</h3>
+        <p>
+            Для имитации отказа мастера был остановлен контейнер <code>pg-master</code>:
+        </p>
+        <pre>
+docker stop pg-master
+        </pre>
+        <p>
+            После остановки мастера был выбран один из слейвов для промоута до нового мастера. 
+            Для этого сначала были проверены LSN (Log Sequence Number) на оставшихся слейвах:
+        </p>
+        <pre>
+docker exec pg-slave1 psql -U postgres -c "SELECT pg_last_wal_receive_lsn();"
+docker exec pg-slave2 psql -U postgres -c "SELECT pg_last_wal_receive_lsn();"
+        </pre>
+        <div class="result">
+            <p>Результат:</p>
+            <pre>
+ pg_last_wal_receive_lsn
+-------------------------
+ 0/3000060
+            </pre>
+        </div>
+        <p>
+            LSN на <code>slave1</code> и <code>slave2</code> одинаковый, что ожидаемо при синхронной репликации. 
+            Для промоута был выбран <code>slave1</code>.
+        </p>
+    </div>
+
+    <div class="step">
+        <h3>Шаг 10: Промоут слейва до мастера</h3>
+        <p>
+            Для промоута <code>slave1</code> до мастера была выполнена команда:
+        </p>
+        <pre>
+docker exec -u postgres pg-slave1 pg_ctl promote -D /var/lib/postgresql/data
+        </pre>
+        <p>
+            После промоута была обновлена настройка синхронной репликации на новом мастере:
+        </p>
+        <pre>
+docker exec -u postgres pg-slave1 psql -c "ALTER SYSTEM SET synchronous_standby_names = 'ANY 1 (slave2)';"
+docker exec -u postgres pg-slave1 pg_ctl reload -D /var/lib/postgresql/data
+        </pre>
+    </div>
+
+    <div class="step">
+        <h3>Шаг 11: Переключение оставшегося слейва на новый мастер</h3>
+        <p>
+            Для переключения <code>slave2</code> на новый мастер (<code>slave1</code>) были выполнены следующие команды:
+        </p>
+        <pre>
+docker exec -u postgres pg-slave2 psql -c "ALTER SYSTEM SET primary_conninfo = 'host=pg-slave1 port=5432 user=postgres password=postgres application_name=slave2';"
+docker exec -u postgres pg-slave2 pg_ctl reload -D /var/lib/postgresql/data
+        </pre>
+        <p>
+            Также был создан слот репликации на новом мастере:
+        </p>
+        <pre>
+docker exec pg-slave1 psql -U postgres -c "SELECT * FROM pg_create_physical_replication_slot('slave2_slot');"
+        </pre>
+        <p>
+            И перезапущен <code>slave2</code> для подключения к новому мастеру:
+        </p>
+        <pre>
+docker restart pg-slave2
+        </pre>
+    </div>
+
+    <div class="step">
+        <h3>Шаг 12: Проверка статуса репликации после переключения</h3>
+        <p>
+            После переключения был проверен статус репликации на новом мастере:
+        </p>
+        <pre>
+docker exec pg-slave1 psql -U postgres -c "SELECT application_name, sync_state, sync_priority FROM pg_stat_replication;"
+        </pre>
+        <div class="result">
+            <p>Результат:</p>
+            <pre>
+ application_name | sync_state | sync_priority
+-----------------+------------+---------------
+ slave2          | quorum     |             1
+            </pre>
+        </div>
+        <p>
+            <code>slave2</code> успешно подключился к новому мастеру (<code>slave1</code>) и находится в состоянии 'quorum'.
+        </p>
+    </div>
+
+    <div class="step">
+        <h3>Шаг 13: Проверка данных после переключения</h3>
+        <p>
+            Для проверки целостности данных после переключения было проверено количество записей на новом мастере и слейве:
+        </p>
+        <pre>
+docker exec pg-slave1 psql -U postgres -d testdb -c "SELECT COUNT(*) FROM test_table;"
+docker exec pg-slave2 psql -U postgres -d testdb -c "SELECT COUNT(*) FROM test_table;"
+        </pre>
+        <div class="result">
+            <p>Результат:</p>
+            <pre>
+ count
+-------
+   200
+            </pre>
+        </div>
+        <p>
+            На новом мастере (<code>slave1</code>) и на <code>slave2</code> одинаковое количество записей (200), 
+            что подтверждает отсутствие потери данных при переключении.
+        </p>
+    </div>
+
+    <div class="step">
+        <h3>Шаг 14: Проверка возможности записи на новый мастер</h3>
+        <p>
+            Для проверки возможности записи на новый мастер были вставлены новые данные:
+        </p>
+        <pre>
+docker exec pg-slave1 psql -U postgres -d testdb -c "INSERT INTO test_table (data) VALUES ('test after promotion');"
+        </pre>
+        <div class="result">
+            <p>Проверка вставленных данных:</p>
+            <pre>
+docker exec pg-slave1 psql -U postgres -d testdb -c "SELECT * FROM test_table WHERE data = 'test after promotion';"
+
+ id  |         data         |         created_at
+-----+----------------------+----------------------------
+ 201 | test after promotion | 2025-04-16 18:45:12.123456
+            </pre>
+        </div>
+        <p>
+            Вставка данных на новый мастер прошла успешно, что подтверждает работоспособность кластера после переключения.
+        </p>
+    </div>
+
+    <h2>Заключение</h2>
+    <p>
+        В ходе эксперимента была успешно настроена кворумная синхронная репликация PostgreSQL с одним мастером и тремя слейвами. 
+        Были проведены тесты отказоустойчивости при отключении одного слейва и мастера, которые показали, что:
+    </p>
+    <ol>
+        <li>При отказе одного слейва кластер продолжает работать в синхронном режиме, так как настройка <code>synchronous_standby_names = 'ANY 2 (slave1, slave2, slave3)'</code> требует подтверждения от любых двух из трех слейвов.</li>
+        <li>При отказе мастера один из слейвов может быть промоутирован до нового мастера, а оставшиеся слейвы переключены на него, что обеспечивает непрерывность работы системы.</li>
+        <li>При правильной настройке переключения не происходит потери данных, что подтверждается одинаковым количеством записей на новом мастере и слейвах.</li>
+    </ol>
+    <p>
+        Кворумная синхронная репликация PostgreSQL обеспечивает высокую доступность и надежность данных, 
+        позволяя продолжать работу при отказе одного слейва и быстро восстанавливаться при отказе мастера.
+    </p>
+</body>
+</html>

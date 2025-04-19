@@ -1,0 +1,76 @@
+version: '3'
+
+services:
+  master:
+    image: postgres:15
+    container_name: pg-master
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: testdb
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./pg-master-data:/var/lib/postgresql/data
+      - ./init-master.sh:/docker-entrypoint-initdb.d/init-master.sh
+    networks:
+      - postgres-network
+
+  slave1:
+    image: postgres:15
+    container_name: pg-slave1
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: testdb
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./pg-slave1-data:/var/lib/postgresql/data
+      - ./init-slave1.sh:/docker-entrypoint-initdb.d/init-slave1.sh
+    depends_on:
+      - master
+    networks:
+      - postgres-network
+
+  slave2:
+    image: postgres:15
+    container_name: pg-slave2
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: testdb
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5434:5432"
+    volumes:
+      - ./pg-slave2-data:/var/lib/postgresql/data
+      - ./init-slave2.sh:/docker-entrypoint-initdb.d/init-slave2.sh
+    depends_on:
+      - master
+    networks:
+      - postgres-network
+
+  slave3:
+    image: postgres:15
+    container_name: pg-slave3
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: testdb
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5435:5432"
+    volumes:
+      - ./pg-slave3-data:/var/lib/postgresql/data
+      - ./init-slave3.sh:/docker-entrypoint-initdb.d/init-slave3.sh
+    depends_on:
+      - master
+    networks:
+      - postgres-network
+
+networks:
+  postgres-network:
+    driver: bridge

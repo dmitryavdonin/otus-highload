@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Load Test Comparison Graphs</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        h2 {
+            color: #555;
+            margin-top: 30px;
+        }
+        .graph-container {
+            margin: 20px 0;
+            text-align: center;
+        }
+        img {
+            max-width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .description {
+            margin: 10px 0 30px 0;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>Load Test Comparison: With vs. Without Replication</h1>
+    
+    <h2>User Get Endpoint</h2>
+    
+    <div class="graph-container">
+        <h3>Latency Comparison</h3>
+        <img src="user_get_latency_comparison.png" alt="User Get Latency Comparison">
+        <p class="description">
+            This graph compares the response time (latency) of the /user/get endpoint with and without database replication.
+            Lower values indicate better performance.
+        </p>
+    </div>
+    
+    <div class="graph-container">
+        <h3>Throughput Comparison</h3>
+        <img src="user_get_throughput_comparison.png" alt="User Get Throughput Comparison">
+        <p class="description">
+            This graph compares the throughput (requests per second) of the /user/get endpoint with and without database replication.
+            Higher values indicate better performance.
+        </p>
+    </div>
+    
+    <h2>User Search Endpoint</h2>
+    
+    <div class="graph-container">
+        <h3>Latency Comparison</h3>
+        <img src="user_search_latency_comparison.png" alt="User Search Latency Comparison">
+        <p class="description">
+            This graph compares the response time (latency) of the /user/search endpoint with and without database replication.
+            Lower values indicate better performance.
+        </p>
+    </div>
+    
+    <div class="graph-container">
+        <h3>Throughput Comparison</h3>
+        <img src="user_search_throughput_comparison.png" alt="User Search Throughput Comparison">
+        <p class="description">
+            This graph compares the throughput (requests per second) of the /user/search endpoint with and without database replication.
+            Higher values indicate better performance.
+        </p>
+    </div>
+</body>
+</html>

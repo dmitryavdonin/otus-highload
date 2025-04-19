@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  db-master:
+    image: postgres:15
+    container_name: pg-master
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: social_network
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init-master-quorum.sh:/docker-entrypoint-initdb.d/init-master-quorum.sh
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql
+      - postgres_master_quorum_data:/var/lib/postgresql/data
+    networks:
+      - postgres_net
+
+  db-slave1:
+    image: postgres:15
+    container_name: pg-slave1
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: social_network
+      MASTER_HOST: pg-master
+      SLAVE_NAME: slave1
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./init-slave-quorum.sh:/docker-entrypoint-initdb.d/init-slave-quorum.sh
+      - postgres_slave1_quorum_data:/var/lib/postgresql/data
+    depends_on:
+      - db-master
+    networks:
+      - postgres_net
+
+  db-slave2:
+    image: postgres:15
+    container_name: pg-slave2
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: social_network
+      MASTER_HOST: pg-master
+      SLAVE_NAME: slave2
+    ports:
+      - "5434:5432"
+    volumes:
+      - ./init-slave-quorum.sh:/docker-entrypoint-initdb.d/init-slave-quorum.sh
+      - postgres_slave2_quorum_data:/var/lib/postgresql/data
+    depends_on:
+      - db-master
+    networks:
+      - postgres_net
+
+  db-slave3:
+    image: postgres:15
+    container_name: pg-slave3
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: social_network
+      MASTER_HOST: pg-master
+      SLAVE_NAME: slave3
+    ports:
+      - "5435:5432"
+    volumes:
+      - ./init-slave-quorum.sh:/docker-entrypoint-initdb.d/init-slave-quorum.sh
+      - postgres_slave3_quorum_data:/var/lib/postgresql/data
+    depends_on:
+      - db-master
+    networks:
+      - postgres_net
+
+networks:
+  postgres_net:
+    driver: bridge
+
+volumes:
+  postgres_master_quorum_data:
+  postgres_slave1_quorum_data:
+  postgres_slave2_quorum_data:
+  postgres_slave3_quorum_data:
