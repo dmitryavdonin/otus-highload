@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Network Feed Implementation Report</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        h1 {
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            margin-top: 30px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+        pre {
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            overflow-x: auto;
+        }
+        code {
+            font-family: Consolas, Monaco, 'Andale Mono', monospace;
+            background-color: #f8f8f8;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        .highlight {
+            background-color: #ffffcc;
+            padding: 2px;
+        }
+        .architecture {
+            display: block;
+            margin: 20px auto;
+            max-width: 100%;
+        }
+        .note {
+            background-color: #e7f3fe;
+            border-left: 6px solid #2196F3;
+            padding: 10px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>OTUS. Highload Architecture</h1>
+    <h2>ДЗ № 4 - Реализация ленты постов друзей в социальной сети</h1>
+    <h3>Авдонин Дмитрий</h3>
+    <p>
+        Данный отчет описывает реализацию домашнего задания по созданию ленты постов друзей в социальной сети.
+        Основной акцент сделан на механизме кэширования ленты и инвалидации кэша.
+    </p>
+
+    <h2>Архитектура решения</h2>
+    <p>
+        Реализованное решение включает следующие компоненты:
+    </p>
+    <ul>
+        <li><strong>API сервер</strong> - FastAPI приложение, реализующее REST API</li>
+        <li><strong>База данных</strong> - PostgreSQL с репликацией (1 мастер и 2 реплики)</li>
+        <li><strong>Кэш</strong> - Redis для хранения кэшированных лент постов</li>
+    </ul>
+    
+    <h3>Инфраструктура</h3>
+    <p>
+        Инфраструктура развернута с использованием Docker Compose и включает:
+    </p>
+    <ul>
+        <li>Мастер-базу данных PostgreSQL</li>
+        <li>Две реплики PostgreSQL для распределения нагрузки на чтение</li>
+        <li>Redis-сервер для кэширования</li>
+        <li>API-сервер на FastAPI</li>
+    </ul>
+
+    <h2>Реализация API</h2>
+    <p>
+        В соответствии с заданием, были реализованы следующие API-методы:
+    </p>
+    <ul>
+        <li><code>/friend/add</code> и <code>/friend/delete</code> - добавление и удаление друзей</li>
+        <li><code>/post/create</code>, <code>/post/update</code>, <code>/post/delete</code>, <code>/post/get</code> - CRUD операции для постов</li>
+        <li><code>/post/feed</code> - получение ленты постов друзей</li>
+    </ul>
+
+    <h2>Структура базы данных</h2>
+    <p>
+        Для хранения данных используются следующие таблицы:
+    </p>
+    <ul>
+        <li><code>users</code> - информация о пользователях</li>
+        <li><code>auth_tokens</code> - токены аутентификации</li>
+        <li><code>friends</code> - связи дружбы между пользователями</li>
+        <li><code>posts</code> - посты пользователей</li>
+    </ul>
+
+    <h2>Кэширование ленты постов</h2>
+    <p>
+        Ключевой частью реализации является механизм кэширования ленты постов друзей. Для этого используется Redis и реализована стратегия, сочетающая "ленивую загрузку" (lazy loading) и "веерное распространение при записи" (fan-out on write).
+    </p>
+
+    <h3>Структура кэша</h3>
+    <p>
+        Для хранения ленты постов используются отсортированные множества Redis (Sorted Sets):
+    </p>
+    <ul>
+        <li>Ключ для ленты пользователя: <code>user:{user_id}:feed</code></li>
+        <li>Значения: сериализованные в JSON посты</li>
+        <li>Оценки (scores): временные метки создания постов для сортировки</li>
+    </ul>
+
+    <h3>Стратегия кэширования</h3>
+    <p>
+        Реализованы две стратегии кэширования:
+    </p>
+
+    <h4>1. Ленивая загрузка (Lazy Loading)</h4>
+    <p>
+        При первом запросе ленты постов для пользователя:
+    </p>
+    <pre><code>@app.get("/post/feed", response_model=List[PostResponse], tags=["Posts"])
+async def get_friends_feed(
+    offset: int = Query(0, ge=0, description="Оффсет с которого начинать выдачу"),
+    limit: int = Query(10, ge=1, description="Лимит возвращаемых сущностей"),
+    current_user_id: str = Depends(verify_token)
+):
+    # Сначала пытаемся получить ленту из кэша
+    cached_feed = await redis_cache.get_feed(current_user_id, offset, limit)
+    
+    if cached_feed:
+        # Возвращаем кэшированную ленту, если она доступна
+        return [
+            PostResponse(
+                id=post["id"],
+                text=post["text"],
+                author_user_id=post["author_user_id"]
+            )
+            for post in cached_feed
+        ]
+    
+    # Если кэш отсутствует, генерируем ленту из базы данных
+    async with get_slave_session() as session:
+        # Подзапрос для получения всех friend_id пользователя
+        subq = select(Friendship.friend_id).where(Friendship.user_id == current_user_id).subquery()
+        
+        # Получаем посты друзей
+        query = (
+            select(Post)
+            .where(Post.author_user_id.in_(subq))
+            .order_by(Post.created_at.desc())
+            .limit(1000)
+        )
+        result = await session.execute(query)
+        all_posts = result.scalars().all()
+        
+        # Преобразуем посты в словари для кэширования
+        post_dicts = [
+            {
+                "id": str(post.id),
+                "text": post.text,
+                "author_user_id": str(post.author_user_id),
+                "created_at": post.created_at.isoformat()
+            }
+            for post in all_posts
+        ]
+        
+        # Кэшируем ленту
+        if post_dicts:
+            await redis_cache.cache_feed(current_user_id, post_dicts)
+        
+        # Применяем пагинацию для ответа
+        paginated_posts = post_dicts[offset:offset+limit] if post_dicts else []
+
+    # Возвращаем посты с пагинацией
+    return [
+        PostResponse(
+            id=post["id"],
+            text=post["text"],
+            author_user_id=post["author_user_id"]
+        )
+        for post in paginated_posts
+    ]</code></pre>
+
+    <h4>2. Веерное распространение при записи (Fan-out on Write)</h4>
+    <p>
+        При создании нового поста, он автоматически добавляется в кэшированные ленты всех друзей пользователя:
+    </p>
+    <pre><code>@app.post("/post/create", response_model=PostIdResponse, tags=["Posts"])
+async def create_post(post: PostCreateRequest, current_user_id: str = Depends(verify_token)):
+    # Создаем пост в базе данных
+    new_post_id = str(uuid.uuid4())
+    created_at = datetime.now()
+    
+    new_post = Post(
+        id=new_post_id,
+        text=post.text,
+        author_user_id=current_user_id,
+        created_at=created_at
+    )
+    
+    async with get_master_session() as session:
+        session.add(new_post)
+        await session.commit()
+    
+    # Получаем список друзей пользователя для обновления их кэшей
+    friend_ids = await get_user_friends(current_user_id)
+    
+    if friend_ids:
+        # Создаем словарь с данными поста для кэширования
+        post_dict = {
+            "id": new_post_id,
+            "text": post.text,
+            "author_user_id": current_user_id,
+            "created_at": created_at.isoformat()
+        }
+        
+        # Добавляем пост в кэши лент друзей (веерное распространение)
+        await redis_cache.add_post_to_friends_feeds(post_dict, friend_ids)
+    
+    return PostIdResponse(id=new_post_id)</code></pre>
+
+    <h3>Реализация кэширования в Redis</h3>
+    <p>
+        Для работы с Redis реализован класс <code>RedisCache</code>, который предоставляет методы для:
+    </p>
+    <ul>
+        <li>Получения ленты из кэша</li>
+        <li>Кэширования ленты</li>
+        <li>Инвалидации кэша</li>
+        <li>Добавления поста в ленты друзей</li>
+        <li>Удаления поста из лент друзей</li>
+    </ul>
+
+    <p>
+        Пример метода для кэширования ленты:
+    </p>
+    <pre><code>async def cache_feed(self, user_id: str, posts: List[Dict[str, Any]]) -> bool:
+    """
+    Кэширование ленты пользователя.
+    
+    Args:
+        user_id: ID пользователя, чью ленту кэшируем
+        posts: Список словарей с данными постов для кэширования
+        
+    Returns:
+        True, если лента успешно кэширована, иначе False
+    """
+    if not self._redis_client or not posts:
+        return False
+    
+    feed_key = f"user:{user_id}:feed"
+    
+    try:
+        # Создаем пайплайн для атомарных операций
+        pipe = self._redis_client.pipeline()
+        
+        # Очищаем существующую ленту
+        pipe.delete(feed_key)
+        
+        # Добавляем каждый пост в отсортированное множество
+        for post in posts:
+            # Конвертируем created_at в timestamp, если это строка
+            if isinstance(post.get('created_at'), str):
+                try:
+                    dt = datetime.fromisoformat(post['created_at'].replace('Z', '+00:00'))
+                    score = dt.timestamp()
+                except ValueError:
+                    # Используем текущее время, если парсинг не удался
+                    score = datetime.now().timestamp()
+            elif isinstance(post.get('created_at'), datetime):
+                score = post['created_at'].timestamp()
+            else:
+                # Используем текущее время, если created_at недоступен
+                score = datetime.now().timestamp()
+            
+            # Сериализуем данные поста
+            post_json = json.dumps(post)
+            
+            # Добавляем в отсортированное множество с timestamp в качестве score
+            pipe.zadd(feed_key, {post_json: score})
+        
+        # Обрезаем ленту до максимального размера
+        pipe.zremrangebyrank(feed_key, 0, -(FEED_MAX_SIZE + 1))
+        
+        # Устанавливаем время жизни кэша
+        pipe.expire(feed_key, FEED_CACHE_TTL)
+        
+        # Выполняем пайплайн
+        await pipe.execute()
+        
+        logger.info(f"Feed cached for user {user_id} with {len(posts)} posts")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error caching feed for user {user_id}: {e}")
+        return False</code></pre>
+
+    <h2>Инвалидация кэша</h2>
+    <p>
+        Инвалидация кэша реализована для следующих сценариев:
+    </p>
+
+    <h3>1. Изменение списка друзей</h3>
+    <p>
+        При добавлении или удалении друга, кэш ленты пользователя инвалидируется:
+    </p>
+    <pre><code>@app.put("/friend/set/{user_id}", tags=["Friends"])
+async def add_friend(user_id: str, current_user_id: str = Depends(verify_token)):
+    # ... (добавление друга в базу данных)
+    
+    # Инвалидация кэша ленты пользователя
+    await redis_cache.invalidate_feed(current_user_id)
+    
+    # ... (обновление кэша с постами нового друга)
+
+@app.put("/friend/delete/{user_id}", tags=["Friends"])
+async def delete_friend(user_id: str, current_user_id: str = Depends(verify_token)):
+    # ... (удаление друга из базы данных)
+    
+    # Инвалидация кэша ленты пользователя
+    await redis_cache.invalidate_feed(current_user_id)
+    
+    # ... (перестроение кэша без постов удаленного друга)</code></pre>
+
+    <h3>2. Обновление поста</h3>
+    <p>
+        При обновлении поста, старая версия удаляется из кэшей лент друзей и добавляется обновленная версия:
+    </p>
+    <pre><code>@app.put("/post/update", tags=["Posts"])
+async def update_post(post: PostUpdateRequest, current_user_id: str = Depends(verify_token)):
+    # ... (обновление поста в базе данных)
+    
+    # Получаем список друзей пользователя для обновления их кэшей
+    friend_ids = await get_user_friends(current_user_id)
+    
+    if friend_ids:
+        # Сначала удаляем старую версию поста из кэшей лент друзей
+        await redis_cache.remove_post_from_feeds(post.id, friend_ids)
+        
+        # Затем добавляем обновленную версию поста в кэши лент друзей
+        post_dict = {
+            "id": post.id,
+            "text": post.text,
+            "author_user_id": current_user_id,
+            "created_at": datetime.now().isoformat()
+        }
+        
+        await redis_cache.add_post_to_friends_feeds(post_dict, friend_ids)</code></pre>
+
+    <h3>3. Удаление поста</h3>
+    <p>
+        При удалении поста, он удаляется из кэшей лент всех друзей:
+    </p>
+    <pre><code>@app.put("/post/delete/{id}", tags=["Posts"])
+async def delete_post(id: str, current_user_id: str = Depends(verify_token)):
+    # ... (удаление поста из базы данных)
+    
+    # Получаем список друзей пользователя для обновления их кэшей
+    friend_ids = await get_user_friends(current_user_id)
+    
+    if friend_ids:
+        # Удаляем пост из кэшей лент друзей
+        await redis_cache.remove_post_from_feeds(id, friend_ids)</code></pre>
+
+    <h3>Реализация удаления поста из кэшей</h3>
+    <p>
+        Метод для удаления поста из кэшей лент пользователей:
+    </p>
+    <pre><code>async def remove_post_from_feeds(self, post_id: str, user_ids: List[str]) -> int:
+    """
+    Удаление поста из кэшей лент нескольких пользователей.
+    
+    Args:
+        post_id: ID поста для удаления
+        user_ids: Список ID пользователей, из чьих лент нужно удалить пост
+        
+    Returns:
+        Количество лент, из которых пост был успешно удален
+    """
+    if not self._redis_client or not user_ids:
+        return 0
+    
+    success_count = 0
+    
+    for user_id in user_ids:
+        feed_key = f"user:{user_id}:feed"
+        
+        try:
+            # Получаем все элементы в ленте
+            feed_items = await self._redis_client.zrange(feed_key, 0, -1)
+            
+            # Находим элементы, содержащие post_id
+            items_to_remove = []
+            for item in feed_items:
+                try:
+                    post_data = json.loads(item)
+                    if post_data.get('id') == post_id:
+                        items_to_remove.append(item)
+                except json.JSONDecodeError:
+                    continue
+            
+            # Удаляем найденные элементы
+            if items_to_remove:
+                await self._redis_client.zrem(feed_key, *items_to_remove)
+                success_count += 1
+            
+        except Exception as e:
+            logger.error(f"Error removing post from feed cache for user {user_id}: {e}")
+    
+    logger.info(f"Post {post_id} removed from {success_count}/{len(user_ids)} feeds")
+    return success_count</code></pre>
+
+    <h2>Оптимизации и особенности реализации</h2>
+    <ul>
+        <li>
+            <strong>Ограничение размера ленты:</strong> В кэше хранятся только последние 1000 постов друзей, что соответствует требованиям задания.
+        </li>
+        <li>
+            <strong>Время жизни кэша:</strong> Для кэшей установлено время жизни (TTL) в 1 час, чтобы предотвратить устаревание данных и контролировать использование памяти.
+        </li>
+        <li>
+            <strong>Атомарные операции:</strong> Использование Redis pipeline для выполнения нескольких операций атомарно.
+        </li>
+        <li>
+            <strong>Асинхронные операции:</strong> Все операции с Redis выполняются асинхронно, что повышает производительность API.
+        </li>
+        <li>
+            <strong>Отказоустойчивость:</strong> Реализована обработка ошибок при работе с Redis, с возможностью деградации до работы с базой данных.
+        </li>
+    </ul>
+
+    <h2>Заключение</h2>
+    <p>
+        Реализованная система кэширования ленты постов друзей в социальной сети соответствует всем требованиям задания:
+    </p>
+    <ul>
+        <li>Лента постов друзей формируется на уровне кэшей</li>
+        <li>В ленте хранятся последние 1000 обновлений друзей</li>
+        <li>Реализовано корректное кэширование и инвалидация кэша</li>
+        <li>Есть возможность перестройки кэшей из СУБД</li>
+    </ul>
+    <p>
+        Система использует гибридный подход к кэшированию, сочетая ленивую загрузку при первом запросе и веерное распространение при создании новых постов, что обеспечивает оптимальный баланс между производительностью и актуальностью данных.
+    </p>
+</body>
+</html>

@@ -1,12 +1,10 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import date, datetime
-from sqlalchemy import Column, String, Date, ForeignKey, DateTime
+from sqlalchemy import Column, String, Date, ForeignKey, DateTime, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.ext.declarative import declarative_base
+import uuid
 from database import Base
-
-Base = declarative_base()
 
 
 class UserRegisterRequest(BaseModel):
@@ -44,6 +42,25 @@ class VersionResponse(BaseModel):
     version: str = Field(..., description="Версия приложения")
 
 
+class PostCreateRequest(BaseModel):
+    text: str = Field(..., description="Текст поста")
+
+
+class PostUpdateRequest(BaseModel):
+    id: str = Field(..., description="Идентификатор поста")
+    text: str = Field(..., description="Текст поста")
+
+
+class PostIdResponse(BaseModel):
+    id: str = Field(..., description="Идентификатор поста")
+
+
+class PostResponse(BaseModel):
+    id: str = Field(..., description="Идентификатор поста")
+    text: str = Field(..., description="Текст поста")
+    author_user_id: str = Field(..., description="Идентификатор автора поста")
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -62,3 +79,24 @@ class AuthToken(Base):
     token = Column(String(64), primary_key=True)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     expires_at = Column(DateTime, nullable=False)
+
+
+class Friendship(Base):
+    __tablename__ = "friends"
+    
+    # A composite primary key (user_id, friend_id) ensures that a user cannot add the same friend twice
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    friend_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    
+    # Explicit uniqueness constraint
+    __table_args__ = (UniqueConstraint("user_id", "friend_id", name="_user_friend_uc"),)
+
+
+class Post(Base):
+    __tablename__ = "posts"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    text = Column(String, nullable=False)
+    author_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

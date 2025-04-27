@@ -1,0 +1,120 @@
+
+    <html>
+    <head>
+        <meta charset='utf-8'>
+        <title>OTUS. Highload Architect. Test Report</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { color: #333; }
+            h2 { color: #666; margin-top: 30px; }
+            .summary { background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+            .step { margin-bottom: 10px; padding: 10px; border-left: 3px solid #ccc; }
+            .success { color: green; }
+            .warning { color: orange; }
+            .error { color: red; }
+            table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; }
+            tr:nth-child(even) { background-color: #f9f9f9; }
+        </style>
+    </head>
+    <body>        
+        <h1>OTUS. Highload Architect</h1>
+        <h2>Отчет по тестированию кэширования ленты постов</h2>
+        <h3>Авдонин Дмитрий</h3>
+        <div class="summary">
+            <h2>Сводка тестирования</h2>
+            <p><strong>Общее время выполнения:</strong> 100.00 секунд</p>
+            <p><strong>Количество созданных пользователей:</strong> 100</p>
+            <p><strong>Количество созданных постов:</strong> 3100</p>
+            <p><strong>Количество добавленных друзей:</strong> 21</p>
+        </div>
+        
+        <h2>Подробные результаты по шагам</h2>
+        
+        <table>
+            <tr>
+                <th>Время</th>
+                <th>Шаг</th>
+                <th>Результат</th>
+            </tr>
+    
+            <tr>
+                <td>2025-04-27 16:21:24.439928</td>
+                <td>Starting user registration</td>
+                <td class="success">Успешно</td>
+            </tr>
+            
+            <tr>
+                <td>2025-04-27 16:21:46.284749</td>
+                <td>Registered 100 users (Took 21.84 seconds)</td>
+                <td class="success">Успешно</td>
+            </tr>
+            
+            <tr>
+                <td>2025-04-27 16:21:47.479074</td>
+                <td>Main user selected: 86bd355f-0934-48df-afc4-da16d1ec6f96 and logged in (Took 1.19 seconds)</td>
+                <td class="success">Успешно</td>
+            </tr>
+            
+            <tr>
+                <td>2025-04-27 16:21:47.825719</td>
+                <td>Added 20 friends to main user (Took 0.35 seconds)</td>
+                <td class="success">Успешно</td>
+            </tr>
+            
+            <tr>
+                <td>2025-04-27 16:22:44.482500</td>
+                <td>Each friend created posts, total 2000 posts (Took 56.66 seconds)</td>
+                <td class="success">Успешно</td>
+            </tr>
+            
+            <tr>
+                <td>2025-04-27 16:22:44.566573</td>
+                <td>Fetched friends feed: 1000 posts in 0.08 seconds</td>
+                <td class="success">Успешно</td>
+            </tr>
+            
+            <tr>
+                <td>2025-04-27 16:22:47.383850</td>
+                <td>Friend 475ea8bc-d5b8-45d9-b31a-fa858332c557 created 100 extra posts (Took 2.82 seconds)</td>
+                <td class="success">Успешно</td>
+            </tr>
+            
+            <tr>
+                <td>2025-04-27 16:22:47.414655</td>
+                <td>Fetched friends feed again: 1000 posts in 0.03 seconds</td>
+                <td class="success">Успешно</td>
+            </tr>
+            
+            <tr>
+                <td>2025-04-27 16:22:48.569808</td>
+                <td>New friend selected: 422372dd-5cb9-4346-97ee-4c10e4860bb4 and logged in (Took 1.15 seconds)</td>
+                <td class="success">Успешно</td>
+            </tr>
+            
+            <tr>
+                <td>2025-04-27 16:23:04.347160</td>
+                <td>New friend created 1000 posts (Took 15.78 seconds)</td>
+                <td class="success">Успешно</td>
+            </tr>
+            
+            <tr>
+                <td>2025-04-27 16:23:04.412874</td>
+                <td>New friend added to main user (Took 0.07 seconds)</td>
+                <td class="success">Успешно</td>
+            </tr>
+            
+            <tr>
+                <td>2025-04-27 16:23:04.441309</td>
+                <td>Fetched friends feed after adding new friend: 1000 posts in 0.03 seconds</td>
+                <td class="success">Успешно</td>
+            </tr>
+            
+        </table>
+        
+        <h2>Выводы</h2>
+        <p>Тестирование социальной сети успешно завершено. Основные функции (регистрация, авторизация, добавление друзей, создание постов, получение ленты) работают корректно.</p>
+    </body>
+    </html>
+    
