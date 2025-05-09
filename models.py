@@ -61,6 +61,17 @@ class PostResponse(BaseModel):
     author_user_id: str = Field(..., description="Идентификатор автора поста")
 
 
+class DialogMessageRequest(BaseModel):
+    text: str = Field(..., description="Текст сообщения")
+
+
+class DialogMessageResponse(BaseModel):
+    from_user_id: str = Field(..., description="Идентификатор отправителя")
+    to_user_id: str = Field(..., description="Идентификатор получателя")
+    text: str = Field(..., description="Текст сообщения")
+    created_at: datetime = Field(..., description="Время создания сообщения")
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -99,4 +110,14 @@ class Post(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     text = Column(String, nullable=False)
     author_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class DialogMessage(Base):
+    __tablename__ = "dialog_messages"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    from_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    to_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    text = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

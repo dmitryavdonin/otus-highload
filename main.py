@@ -11,8 +11,8 @@ import uuid
 import os
 from dotenv import load_dotenv
 from sqlalchemy import select
-from models import User, AuthToken, Friendship, Post, PostCreateRequest, PostUpdateRequest, PostIdResponse, PostResponse
-from db import get_master_session, get_slave_session, get_user_by_id, get_user_by_token, create_auth_token, get_user_friends
+from models import User, AuthToken, Friendship, Post, PostCreateRequest, PostUpdateRequest, PostIdResponse, PostResponse, DialogMessageRequest, DialogMessageResponse
+from db import get_master_session, get_slave_session, get_user_by_id, get_user_by_token, create_auth_token, get_user_friends, save_dialog_message, get_dialog_messages
 from cache import redis_cache
 
 load_dotenv()
@@ -553,3 +553,56 @@ async def get_friends_feed(
         )
         for post in paginated_posts
     ]
+
+@app.post("/dialog/{user_id}/send", tags=["Dialogs"])
+async def send_dialog_message(
+    user_id: str, 
+    message: DialogMessageRequest,
+    current_user_id: str = Depends(verify_token)
+):
+    """
+    Отправка сообщения пользователю
+    """
+    # Проверяем, существует ли получатель
+    recipient = await get_user_by_id(user_id)
+    if not recipient:
+        raise HTTPException(status_code=404, detail="Получатель не найден")
+    
+    # Сохраняем сообщение в базе данных
+    await save_dialog_message(
+        from_user_id=current_user_id,
+        to_user_id=user_id,
+        text=message.text
+    )
+    
+    return {"status": "success"}
+
+@app.get("/dialog/{user_id}/list", response_model=List[DialogMessageResponse], tags=["Dialogs"])
+async def list_dialog_messages(
+    user_id: str,
+    current_user_id: str = Depends(verify_token)
+):
+    """
+    Получение списка сообщений между текущим пользователем и указанным пользователем
+    """
+    # Проверяем, существует ли собеседник
+    interlocutor = await get_user_by_id(user_id)
+    if not interlocutor:
+        raise HTTPException(status_code=404, detail="Пользователь для диалога не найден")
+    
+    # Получаем сообщения диалога
+    messages = await get_dialog_messages(current_user_id, user_id)
+    
+    # Преобразуем сообщения в формат ответа API
+    response_messages = []
+    for msg in messages:
+        response_messages.append(
+            DialogMessageResponse(
+                from_user_id=str(msg.from_user_id),
+                to_user_id=str(msg.to_user_id),
+                text=msg.text,
+                created_at=msg.created_at
+            )
+        )
+    
+    return response_messages
