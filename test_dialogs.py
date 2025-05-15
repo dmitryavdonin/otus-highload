@@ -309,8 +309,8 @@ def main():
         print(f"Ошибка при добавлении друга пользователем {user1_name}. Завершение тестирования.")
         return
     
-    # 3. Пользователь 1 отправляет пользователю 2 10 сообщений
-    print(f"\nШаг 3: {user1_name} отправляет {user2_name} 10 сообщений")
+    # 3. Пользователь 1 отправляет пользователю 2 100 сообщений
+    print(f"\nШаг 3: {user1_name} отправляет {user2_name} 100 сообщений")
     
     # Проверим сразу один тестовый запрос с детальной диагностикой
     test_message = "Тестовое сообщение для диагностики"
@@ -325,7 +325,7 @@ def main():
             return
     
     # Продолжаем с обычными сообщениями
-    for i in range(1, 11):
+    for i in range(1, 101):
         message_text = f"Сообщение #{i} от {user1_name} пользователю {user2_name}"
         if not send_message(user1_token, user2_id, message_text, user2_name):
             print(f"Ошибка при отправке сообщения #{i}. Продолжение...")
@@ -348,10 +348,10 @@ def main():
     messages_from_user1 = get_messages(user2_token, user1_id, user1_name)
     print_messages(messages_from_user1, user_info)
     
-    # 6. Пользователь 2 отправляет 10 сообщений пользователю 1
-    print(f"\nШаг 6: {user2_name} отправляет 10 сообщений {user1_name}")
+    # 6. Пользователь 2 отправляет 100 сообщений пользователю 1
+    print(f"\nШаг 6: {user2_name} отправляет 100 сообщений {user1_name}")
     
-    for i in range(1, 11):
+    for i in range(1, 101):
         message_text = f"Сообщение #{i} от {user2_name} пользователю {user1_name}"
         if not send_message(user2_token, user1_id, message_text, user1_name):
             print(f"Ошибка при отправке сообщения #{i}. Продолжение...")

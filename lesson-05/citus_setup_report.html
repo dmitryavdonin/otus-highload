@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Отчет о настройке кластера Citus</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #2980b9;
+            margin-top: 20px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .note {
+            background-color: #f8f9fa;
+            border-left: 4px solid #ffc107;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Отчет о настройке кластера Citus</h1>
+    <p>Дата: Thu May 15 05:39:55 PM MSK 2025</p>
+    <div class="section">
+        <h2>1. Информация о кластере</h2>
+        <table>
+            <tr>
+                <th>Параметр</th>
+                <th>Значение</th>
+            </tr>
+            <tr>
+                <td>Количество воркеров</td>
+                <td>4</td>
+            </tr>
+            <tr>
+                <td>Общее количество шардов</td>
+                <td>36</td>
+            </tr>
+        </table>
+    </div>
+    <div class="section">
+        <h2>2. Информация о шардированных таблицах</h2>
+        <p>Citus использует следующие методы шардирования:</p>
+        <ul>
+            <li><strong>hash</strong> (консистентное хеширование) - Данные распределяются на основе хеш-значения указанного ключа шардирования. Обеспечивает равномерное распределение и минимизирует перемещение данных при масштабировании.</li>
+            <li><strong>none (reference)</strong> - Таблица полностью реплицируется на каждый узел. Используется для небольших таблиц, к которым нужен быстрый доступ со всех узлов.</li>
+            <li><strong>range</strong> - Данные распределяются по диапазонам значений ключа шардирования (в текущей конфигурации не используется).</li>
+        </ul>
+        <table>
+            <tr>
+                <th>Таблица</th>
+                <th>Метод партиционирования</th>
+                <th>Ключ партиционирования</th>
+            </tr>
+            <tr>
+                <td>users</td>
+                <td>n</td>
+                <td>Нет</td>
+            </tr>
+            <tr>
+                <td>dialog_messages</td>
+                <td>h</td>
+                <td>from_user_id</td>
+            </tr>
+            <tr>
+                <td>auth_tokens</td>
+                <td>n</td>
+                <td>Нет</td>
+            </tr>
+            <tr>
+                <td>friends</td>
+                <td>n</td>
+                <td>Нет</td>
+            </tr>
+            <tr>
+                <td>posts</td>
+                <td>n</td>
+                <td>Нет</td>
+            </tr>
+        </table>
+    </div>
+    <div class="section">
+        <h2>3. Количество пользователей</h2>
+        <p>Всего пользователей создано: <strong>102</strong></p>
+    </div>
+    <div class="section">
+        <h2>4. Количество сообщений</h2>
+        <p>Всего сообщений отправлено: <strong>201</strong></p>
+    </div>
+    <div class="section">
+        <h2>5. Распределение сообщений по шардам</h2>
+        
+        <div class="note">
+            <p><strong>ПРИМЕЧАНИЕ:</strong> В отчете каждый узел показывает общее количество сообщений (201), 
+            поскольку запрос выполняется через функцию run_command_on_workers, которая видит все данные таблицы. 
+            Фактически сообщения распределены между шардами.</p>
+            <p><strong>Метод шардирования:</strong> Citus использует консистентное хеширование (consistent hashing) для распределения данных. 
+            Строки распределяются между шардами на основе хеш-значения ключа шардирования, обеспечивая равномерное распределение и минимизируя перемещение данных при добавлении новых узлов.</p>
+        </div>
+        <h3>Общее количество сообщений, видимое на каждом узле</h3>
+        <table>
+            <tr>
+                <th>Узел</th>
+                <th>Количество сообщений</th>
+            </tr>
+            <tr>
+                <td>citus-worker-1</td>
+                <td>201</td>
+            </tr>
+            <tr>
+                <td>citus-worker-2</td>
+                <td>201</td>
+            </tr>
+            <tr>
+                <td>citus-worker-3</td>
+                <td>201</td>
+            </tr>
+        </table>
+        <h3>Распределение сообщений по шардам</h3>
+        <table>
+            <tr>
+                <th>ID шарда</th>
+                <th>Узел</th>
+                <th>Количество сообщений</th>
+            </tr>
+            <tr>
+                <td>102015</td>
+                <td>citus-worker-1</td>
+                <td>~6 (оценка)</td>
+            </tr>
+            <tr>
+                <td>102016</td>
+                <td>citus-worker-2</td>
+                <td>~6 (оценка)</td>
+            </tr>
+            <tr>
+                <td>102017</td>
+                <td>citus-worker-3</td>
+                <td>~6 (оценка)</td>
+            </tr>
+            <tr>
+                <td>102018</td>
+                <td>citus-worker-1</td>
+                <td>~6 (оценка)</td>
+            </tr>
+            <tr>
+                <td>102019</td>
+                <td>citus-worker-2</td>
+                <td>~6 (оценка)</td>
+            </tr>
+            <tr>
+                <td>102020</td>
+                <td>citus-worker-3</td>
+                <td>~6 (оценка)</td>
+            </tr>
+            <tr>
+                <td>102021</td>
+                <td>citus-worker-1</td>
+                <td>~6 (оценка)</td>
+            </tr>
+            <tr>
+                <td>102022</td>
+                <td>citus-worker-2</td>
+                <td>~6 (оценка)</td>
+            </tr>
+            <tr>
+                <td>102023</td>
+                <td>citus-worker-3</td>
+                <td>~6 (оценка)</td>
+            </tr>
+            <tr>
+                <td>102024</td>
+                <td>citus-worker-1</td>
+                <td>~6 (оценка)</td>
+            </tr>
+            <tr>
+                <td>102025</td>
+                <td>citus-worker-2</td>
+                <td>~6 (оценка)</td>
+            </tr>
+            <tr>
+                <td>102026</td>
+                <td>citus-worker-3</td>
+                <td>~6 (оценка)</td>
+            </tr>
+            <tr>
+                <td>102027</td>
+                <td>citus-worker-1</td>
+                <td>~6 (оценка)</td>
+            </tr>
+            <tr>
+                <td>102028</td>
+                <td>citus-worker-2</td>
+                <td>~6 (оценка)</td>
+            </tr>
+            <tr>
+                <td>102029</td>
+                <td>citus-worker-3</td>
+                <td>~6 (оценка)</td>
+            </tr>
+            <tr>
+                <td>102030</td>
+                <td>citus-worker-1</td>
+                <td>~6 (оценка)</td>
+            </tr>
+            <tr>
+                <td>102031</td>
+                <td>citus-worker-2</td>
+                <td>~6 (оценка)</td>
+            </tr>
+            <tr>
+                <td>102032</td>
+                <td>citus-worker-3</td>
+                <td>~6 (оценка)</td>
+            </tr>
+            <tr>
+                <td>102033</td>
+                <td>citus-worker-1</td>
+                <td>~6 (оценка)</td>
+            </tr>
+            <tr>
+                <td>102034</td>
+                <td>citus-worker-2</td>
+                <td>~6 (оценка)</td>
+            </tr>
+            <tr>
+                <td>102035</td>
+                <td>citus-worker-3</td>
+                <td>~6 (оценка)</td>
+            </tr>
+            <tr>
+                <td>102036</td>
+                <td>citus-worker-1</td>
+                <td>~6 (оценка)</td>
+            </tr>
+            <tr>
+                <td>102037</td>
+                <td>citus-worker-2</td>
+                <td>~6 (оценка)</td>
+            </tr>
+            <tr>
+                <td>102038</td>
+                <td>citus-worker-3</td>
+                <td>~6 (оценка)</td>
+            </tr>
+            <tr>
+                <td>102039</td>
+                <td>citus-worker-1</td>
+                <td>~6 (оценка)</td>
+            </tr>
+            <tr>
+                <td>102040</td>
+                <td>citus-worker-2</td>
+                <td>~6 (оценка)</td>
+            </tr>
+            <tr>
+                <td>102041</td>
+                <td>citus-worker-3</td>
+                <td>~6 (оценка)</td>
+            </tr>
+            <tr>
+                <td>102042</td>
+                <td>citus-worker-1</td>
+                <td>~6 (оценка)</td>
+            </tr>
+            <tr>
+                <td>102043</td>
+                <td>citus-worker-2</td>
+                <td>~6 (оценка)</td>
+            </tr>
+            <tr>
+                <td>102044</td>
+                <td>citus-worker-3</td>
+                <td>~6 (оценка)</td>
+            </tr>
+            <tr>
+                <td>102045</td>
+                <td>citus-worker-1</td>
+                <td>~6 (оценка)</td>
+            </tr>
+            <tr>
+                <td>102046</td>
+                <td>citus-worker-2</td>
+                <td>~6 (оценка)</td>
+            </tr>
+        </table>
+        <p><em>Примечание: Показаны оценочные значения на основе равномерного распределения. Фактическое распределение может отличаться.</em></p>
+    </div>
+    <p>Отчет сгенерирован автоматически Thu May 15 05:39:57 PM MSK 2025</p>
+</body>
+</html>

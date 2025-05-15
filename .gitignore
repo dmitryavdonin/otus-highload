@@ -51,4 +51,5 @@ wheels/
 backups/
 venv/
 
-posts.txt
+posts.txtdocker-compose.yml.bak
+nohup.out

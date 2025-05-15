@@ -24,14 +24,14 @@ echo "Все узлы кластера доступны."
 
 # Проверка статуса кластера
 echo -e "\nСтатус кластера Citus:"
-docker-compose exec citus-coordinator psql -U postgres -d social_network -c "
+docker-compose exec citus-coordinator psql -U postgres -d social_network -P pager=off -c "
     SELECT nodename, nodeport, noderole, isactive 
     FROM pg_dist_node;
 "
 
 # Проверка наличия таблиц и их распределения
 echo -e "\nПроверка распределения таблиц:"
-docker-compose exec citus-coordinator psql -U postgres -d social_network -c "
+docker-compose exec citus-coordinator psql -U postgres -d social_network -P pager=off -c "
     SELECT logicalrelid::regclass, partmethod, partkey, repmodel
     FROM pg_dist_partition
     ORDER BY logicalrelid;
@@ -39,7 +39,7 @@ docker-compose exec citus-coordinator psql -U postgres -d social_network -c "
 
 # Тест 1: Создание тестовых данных
 echo -e "\nТест 1: Создание тестовых пользователей..."
-docker-compose exec citus-coordinator psql -U postgres -d social_network -c "
+docker-compose exec citus-coordinator psql -U postgres -d social_network -P pager=off -c "
     -- Удаление существующих тестовых данных (если есть)
     DELETE FROM users WHERE first_name LIKE 'Test%';
     
@@ -59,7 +59,7 @@ docker-compose exec citus-coordinator psql -U postgres -d social_network -c "
 
 # Тест 2: Проверка распределения данных по шардам
 echo -e "\nТест 2: Проверка распределения данных по шардам..."
-docker-compose exec citus-coordinator psql -U postgres -d social_network -c "
+docker-compose exec citus-coordinator psql -U postgres -d social_network -P pager=off -c "
     -- Проверка количества пользователей на каждом узле
     SELECT nodename, result as user_count 
     FROM run_command_on_workers('SELECT count(*) FROM users WHERE first_name LIKE ''Test%''');
@@ -67,7 +67,7 @@ docker-compose exec citus-coordinator psql -U postgres -d social_network -c "
 
 # Тест 3: Создание дружеских связей между тестовыми пользователями
 echo -e "\nТест 3: Создание связей между пользователями..."
-docker-compose exec citus-coordinator psql -U postgres -d social_network -c "
+docker-compose exec citus-coordinator psql -U postgres -d social_network -P pager=off -c "
     -- Удаление существующих связей
     DELETE FROM friends 
     WHERE user_id IN (SELECT id FROM users WHERE first_name LIKE 'Test%')
@@ -93,7 +93,7 @@ docker-compose exec citus-coordinator psql -U postgres -d social_network -c "
 
 # Тест 4: Проверка распределения связей по шардам
 echo -e "\nТест 4: Проверка распределения связей по шардам..."
-docker-compose exec citus-coordinator psql -U postgres -d social_network -c "
+docker-compose exec citus-coordinator psql -U postgres -d social_network -P pager=off -c "
     -- Проверка количества связей на каждом узле
     SELECT nodename, result as friend_count
     FROM run_command_on_workers('SELECT count(*) FROM friends WHERE user_id IN (SELECT id FROM users WHERE first_name LIKE ''Test%'')');
@@ -104,7 +104,7 @@ echo -e "\nТест 5: Тест производительности запро�
 
 echo "-- Тест 5.1: Поиск пользователей по имени"
 start_time=$(date +%s.%N)
-docker-compose exec citus-coordinator psql -U postgres -d social_network -c "
+docker-compose exec citus-coordinator psql -U postgres -d social_network -P pager=off -c "
     SELECT COUNT(*) FROM users WHERE first_name LIKE 'Test%';
 "
 end_time=$(date +%s.%N)
@@ -113,7 +113,7 @@ echo "Время выполнения: $duration секунд"
 
 echo "-- Тест 5.2: Поиск друзей конкретного пользователя"
 start_time=$(date +%s.%N)
-docker-compose exec citus-coordinator psql -U postgres -d social_network -c "
+docker-compose exec citus-coordinator psql -U postgres -d social_network -P pager=off -c "
     SELECT COUNT(*) 
     FROM friends 
     WHERE user_id = (SELECT id FROM users WHERE first_name LIKE 'Test%' LIMIT 1);
@@ -124,7 +124,7 @@ echo "Время выполнения: $duration секунд"
 
 echo "-- Тест 5.3: JOIN между пользователями и друзьями"
 start_time=$(date +%s.%N)
-docker-compose exec citus-coordinator psql -U postgres -d social_network -c "
+docker-compose exec citus-coordinator psql -U postgres -d social_network -P pager=off -c "
     SELECT COUNT(*)
     FROM users u
     JOIN friends f ON u.id = f.user_id
@@ -136,7 +136,7 @@ echo "Время выполнения: $duration секунд"
 
 # Проверка размера таблиц на координаторе
 echo -e "\nПроверка размера таблиц на координаторе:"
-docker-compose exec citus-coordinator psql -U postgres -d social_network -c "
+docker-compose exec citus-coordinator psql -U postgres -d social_network -P pager=off -c "
     SELECT
         c.relname as table_name,
         pg_size_pretty(pg_table_size(c.oid)) as table_size,

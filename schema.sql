@@ -1,5 +1,8 @@
 -- Database schema for social network
 
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY,
@@ -38,9 +41,9 @@ CREATE TABLE IF NOT EXISTS posts (
 
 -- Dialog messages table
 CREATE TABLE IF NOT EXISTS dialog_messages (
-    id UUID PRIMARY KEY,
-    from_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    to_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    id uuid DEFAULT uuid_generate_v4() NOT NULL,
+    from_user_id UUID NOT NULL,
+    to_user_id UUID NOT NULL,
     text TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
