@@ -222,7 +222,7 @@ async def add_friend(user_id: str, current_user_id: str = Depends(verify_token))
     friend_user = await get_user_by_id(user_id)
     if not friend_user:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
     async with get_master_session() as session:
         # Check if the friendship already exists
         result = await session.execute(
@@ -240,39 +240,8 @@ async def add_friend(user_id: str, current_user_id: str = Depends(verify_token))
         session.add(new_friendship)
         await session.commit()
     
-    # Invalidate the user's feed cache to include posts from the new friend
+    # Invalidate the user's feed cache to rebuild it properly
     await redis_cache.invalidate_feed(current_user_id)
-    
-    # Get recent posts from the new friend to add to the user's feed
-    async with get_slave_session() as session:
-        result = await session.execute(
-            select(Post)
-            .where(Post.author_user_id == user_id)
-            .order_by(Post.created_at.desc())
-            .limit(1000)
-        )
-        friend_posts = result.scalars().all()
-        
-        if friend_posts:
-            # Get the current feed from cache
-            current_feed = await redis_cache.get_feed(current_user_id, 0, 1000)
-            
-            # Add the new friend's posts
-            for post in friend_posts:
-                post_dict = {
-                    "id": str(post.id),
-                    "text": post.text,
-                    "author_user_id": str(post.author_user_id),
-                    "created_at": post.created_at.isoformat()
-                }
-                current_feed.append(post_dict)
-            
-            # Sort by created_at (newest first)
-            current_feed.sort(key=lambda x: x.get("created_at", ""), reverse=True)
-            
-            # Trim to 1000 items and cache
-            if current_feed:
-                await redis_cache.cache_feed(current_user_id, current_feed[:1000])
     
     return {"detail": "Friend added successfully"}
 
@@ -289,7 +258,7 @@ async def delete_friend(user_id: str, current_user_id: str = Depends(verify_toke
     # Prevent a user from removing himself (although that should not happen)
     if user_id == current_user_id:
         raise HTTPException(status_code=400, detail="Cannot remove yourself")
-    
+
     async with get_master_session() as session:
         result = await session.execute(
             select(Friendship).where(
@@ -304,40 +273,8 @@ async def delete_friend(user_id: str, current_user_id: str = Depends(verify_toke
         await session.delete(friendship)
         await session.commit()
     
-    # Invalidate the user's feed cache
+    # Invalidate the user's feed cache to rebuild it properly
     await redis_cache.invalidate_feed(current_user_id)
-    
-    # Get the current feed from cache and remove posts from the deleted friend
-    async with get_slave_session() as session:
-        # Get all remaining friends
-        remaining_friends = await get_user_friends(current_user_id)
-        
-        # Get posts from remaining friends
-        if remaining_friends:
-            subq = select(Friendship.friend_id).where(Friendship.user_id == current_user_id).subquery()
-            
-            query = (
-                select(Post)
-                .where(Post.author_user_id.in_(subq))
-                .order_by(Post.created_at.desc())
-                .limit(1000)
-            )
-            result = await session.execute(query)
-            friend_posts = result.scalars().all()
-            
-            # Convert to dictionaries and cache
-            if friend_posts:
-                post_dicts = [
-                    {
-                        "id": str(post.id),
-                        "text": post.text,
-                        "author_user_id": str(post.author_user_id),
-                        "created_at": post.created_at.isoformat()
-                    }
-                    for post in friend_posts
-                ]
-                
-                await redis_cache.cache_feed(current_user_id, post_dicts)
     
     return {"detail": "Friend removed successfully"}
 

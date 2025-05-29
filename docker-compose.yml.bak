@@ -1,0 +1,172 @@
+services:
+  # Координатор Citus (заменяет db-master)
+  citus-coordinator:
+    container_name: citus-coordinator
+    image: citusdata/citus:12.0
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: social_network
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./coordinator-init.sh:/docker-entrypoint-initdb.d/coordinator-init.sh
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql
+      - ./pg_hba.conf:/etc/postgresql/pg_hba.conf
+      - citus_coordinator_data:/var/lib/postgresql/data
+    networks:
+      - postgres_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Рабочие узлы Citus (заменяют slaves)
+  citus-worker-1:
+    container_name: citus-worker-1
+    image: citusdata/citus:12.0
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: social_network
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./worker-init.sh:/docker-entrypoint-initdb.d/worker-init.sh
+      - ./pg_hba.conf:/etc/postgresql/pg_hba.conf
+      - citus_worker_1_data:/var/lib/postgresql/data
+    networks:
+      - postgres_net
+    depends_on:
+      citus-coordinator:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  citus-worker-2:
+    container_name: citus-worker-2
+    image: citusdata/citus:12.0
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: social_network
+    ports:
+      - "5434:5432"
+    volumes:
+      - ./worker-init.sh:/docker-entrypoint-initdb.d/worker-init.sh
+      - ./pg_hba.conf:/etc/postgresql/pg_hba.conf
+      - citus_worker_2_data:/var/lib/postgresql/data
+    networks:
+      - postgres_net
+    depends_on:
+      citus-coordinator:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Добавляем третий рабочий узел для лучшего масштабирования
+  citus-worker-3:
+  citus-worker-4:
+    container_name: citus-worker-4
+    image: citusdata/citus:12.0
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: social_network
+    ports:
+      - "5436:5432"
+    volumes:
+      - ./worker-init.sh:/docker-entrypoint-initdb.d/worker-init.sh
+      - ./pg_hba.conf:/etc/postgresql/pg_hba.conf
+      - citus_worker_4_data:/var/lib/postgresql/data
+    networks:
+      - postgres_net
+    depends_on:
+      citus-coordinator:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    container_name: citus-worker-3
+    image: citusdata/citus:12.0
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: social_network
+    ports:
+      - "5435:5432"
+    volumes:
+      - ./worker-init.sh:/docker-entrypoint-initdb.d/worker-init.sh
+      - ./pg_hba.conf:/etc/postgresql/pg_hba.conf
+      - citus_worker_3_data:/var/lib/postgresql/data
+  citus_worker_4_data:
+    name: citus_worker_4_data
+    networks:
+      - postgres_net
+    depends_on:
+      citus-coordinator:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
+    networks:
+      - postgres_net
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "9000:9000"
+    depends_on:
+      citus-coordinator:
+        condition: service_healthy
+    environment:
+      - DB_HOST=citus-coordinator
+      - DB_PORT=5432
+      - DB_NAME=social_network
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+    networks:
+      - postgres_net
+
+networks:
+  postgres_net:
+    driver: bridge
+
+volumes:
+  citus_coordinator_data:
+    name: citus_coordinator_data
+  citus_worker_1_data:
+    name: citus_worker_1_data
+  citus_worker_2_data:
+    name: citus_worker_2_data
+  citus_worker_3_data:
+  citus_worker_4_data:
+    name: citus_worker_4_data
+    name: citus_worker_3_data
+  redis_data:
+    name: redis_data
