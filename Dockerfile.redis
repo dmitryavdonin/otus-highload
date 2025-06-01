@@ -1,0 +1,14 @@
+FROM redis:7-alpine
+
+# Копируем конфигурацию Redis
+COPY redis.conf /usr/local/etc/redis/redis.conf
+
+# Копируем UDF функции
+COPY redis_udf.lua /usr/local/etc/redis/redis_udf.lua
+
+# Создаем скрипт инициализации для загрузки UDF
+COPY redis-init.sh /usr/local/bin/redis-init.sh
+RUN chmod +x /usr/local/bin/redis-init.sh
+
+# Запускаем Redis с нашим скриптом инициализации
+CMD ["/usr/local/bin/redis-init.sh"] 

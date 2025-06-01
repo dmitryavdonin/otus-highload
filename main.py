@@ -14,6 +14,9 @@ from sqlalchemy import select
 from models import User, AuthToken, Friendship, Post, PostCreateRequest, PostUpdateRequest, PostIdResponse, PostResponse, DialogMessageRequest, DialogMessageResponse
 from db import get_master_session, get_slave_session, get_user_by_id, get_user_by_token, create_auth_token, get_user_friends, save_dialog_message, get_dialog_messages
 from cache import redis_cache
+from dialog_service import dialog_service
+from redis_adapter_udf import get_redis_dialog_adapter_udf, init_redis_adapter_udf, close_redis_adapter_udf
+from redis_adapter import init_redis_adapter, close_redis_adapter
 
 load_dotenv()
 
@@ -24,15 +27,62 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Handle startup and shutdown events for the application."""
+    print(f"🔍 DEBUG: Начало функции lifespan")
+    
     # Initialize connections and services on startup
     is_redis_available = await redis_cache.ping()
     if not is_redis_available:
         logger.warning("Redis cache is not available. Feed caching will be disabled.")
     
+    # Инициализация сервиса диалогов при запуске
+    await dialog_service.init()
+    
+    # Получаем переменные окружения для Redis
+    REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+    REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
+    REDIS_DB = int(os.getenv("REDIS_DB", "0"))
+    redis_url = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
+    print(f"🔍 DEBUG: Сформирован redis_url: {redis_url}")
+    
+    # Инициализация обычного Redis адаптера
+    try:
+        print(f"🔍 DEBUG: Инициализация обычного Redis адаптера...")
+        await init_redis_adapter(redis_url)
+        logger.info("Redis adapter initialized successfully")
+        print(f"✅ DEBUG: Обычный Redis адаптер инициализирован")
+    except Exception as e:
+        logger.error(f"Failed to initialize Redis adapter: {e}")
+        print(f"❌ DEBUG: Ошибка инициализации обычного Redis адаптера: {e}")
+    
+    # Инициализация UDF адаптера Redis
+    try:
+        print(f"🔍 DEBUG: Начинаем инициализацию UDF адаптера Redis...")
+        print(f"🔍 DEBUG: Передаем redis_url: {redis_url}")
+        await init_redis_adapter_udf(redis_url)
+        logger.info("Redis UDF adapter initialized successfully")
+        print(f"✅ DEBUG: UDF адаптер Redis инициализирован успешно")
+        
+        # Проверяем, что адаптер действительно инициализирован
+        from redis_adapter_udf import redis_dialog_adapter_udf
+        print(f"🔍 DEBUG: Проверка глобальной переменной redis_dialog_adapter_udf: {redis_dialog_adapter_udf}")
+        
+    except Exception as e:
+        logger.error(f"Failed to initialize Redis UDF adapter: {e}")
+        print(f"❌ DEBUG: Ошибка инициализации UDF адаптера Redis: {e}")
+        import traceback
+        print(f"🔍 DEBUG: Полная трассировка ошибки:\n{traceback.format_exc()}")
+    
+    print(f"🔍 DEBUG: Завершение инициализации в lifespan")
+    
     yield
     
     # Close connections and cleanup on shutdown
+    print(f"🔍 DEBUG: Начало завершения работы в lifespan")
     await redis_cache.close()
+    await dialog_service.close()
+    await close_redis_adapter()
+    await close_redis_adapter_udf()
+    print(f"🔍 DEBUG: Завершение работы в lifespan завершено")
 
 app = FastAPI(
     title="Social Network API",
@@ -505,8 +555,8 @@ async def send_dialog_message(
     if not recipient:
         raise HTTPException(status_code=404, detail="Получатель не найден")
     
-    # Сохраняем сообщение в базе данных
-    await save_dialog_message(
+    # Сохраняем сообщение через универсальный сервис
+    await dialog_service.save_dialog_message(
         from_user_id=current_user_id,
         to_user_id=user_id,
         text=message.text
@@ -527,19 +577,167 @@ async def list_dialog_messages(
     if not interlocutor:
         raise HTTPException(status_code=404, detail="Пользователь для диалога не найден")
     
-    # Получаем сообщения диалога
-    messages = await get_dialog_messages(current_user_id, user_id)
+    # Получаем сообщения через универсальный сервис
+    messages = await dialog_service.get_dialog_messages(current_user_id, user_id)
     
-    # Преобразуем сообщения в формат ответа API
-    response_messages = []
-    for msg in messages:
-        response_messages.append(
-            DialogMessageResponse(
-                from_user_id=str(msg.from_user_id),
-                to_user_id=str(msg.to_user_id),
-                text=msg.text,
-                created_at=msg.created_at
-            )
+    return messages
+
+@app.get("/dialog/stats", tags=["Dialogs"])
+async def get_dialog_stats(current_user_id: str = Depends(verify_token)):
+    """
+    Получение статистики по диалогам (для администраторов и разработчиков)
+    """
+    stats = await dialog_service.get_dialog_stats()
+    return stats
+
+async def get_current_user(user_id: str = Depends(verify_token)) -> User:
+    """Получение текущего пользователя по токену"""
+    user = await get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    return user
+
+@app.post("/dialog/{user_id}/send_udf", response_model=DialogMessageResponse)
+async def send_dialog_message_udf(
+    user_id: str,
+    message: DialogMessageRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Отправка сообщения в диалог с использованием UDF функций Redis
+    """
+    print(f"📨 UDF: Отправка сообщения от {current_user.id} к {user_id}")
+    print(f"🔍 DEBUG: Начало функции send_dialog_message_udf")
+    
+    try:
+        print(f"🔍 DEBUG: Попытка получить UDF адаптер...")
+        udf_adapter = get_redis_dialog_adapter_udf()
+        print(f"🔍 DEBUG: UDF адаптер получен: {udf_adapter}")
+        print(f"🔍 DEBUG: Тип адаптера: {type(udf_adapter)}")
+        
+        # Сохраняем сообщение с помощью UDF
+        print(f"🔍 DEBUG: Вызываем save_dialog_message...")
+        message_id = await udf_adapter.save_dialog_message(
+            from_user_id=str(current_user.id),
+            to_user_id=user_id,
+            text=message.text
         )
+        
+        print(f"✅ UDF: Сообщение сохранено с ID: {message_id}")
+        
+        # Возвращаем ответ
+        return DialogMessageResponse(
+            from_user_id=str(current_user.id),
+            to_user_id=user_id,
+            text=message.text,
+            created_at=datetime.utcnow()
+        )
+        
+    except Exception as e:
+        print(f"❌ UDF: Ошибка отправки сообщения: {e}")
+        print(f"🔍 DEBUG: Тип ошибки: {type(e)}")
+        import traceback
+        print(f"🔍 DEBUG: Полная трассировка:\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Ошибка отправки сообщения: {str(e)}")
+
+
+@app.get("/dialog/{user_id}/list_udf", response_model=List[DialogMessageResponse])
+async def get_dialog_messages_udf(
+    user_id: str,
+    limit: int = Query(100, ge=1, le=1000, description="Количество сообщений"),
+    offset: int = Query(0, ge=0, description="Смещение для пагинации"),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Получение сообщений диалога с использованием UDF функций Redis
+    """
+    print(f"📖 UDF: Получение сообщений диалога между {current_user.id} и {user_id}")
+    print(f"🔍 DEBUG: Начало функции get_dialog_messages_udf")
     
-    return response_messages
+    try:
+        print(f"🔍 DEBUG: Попытка получить UDF адаптер...")
+        udf_adapter = get_redis_dialog_adapter_udf()
+        print(f"🔍 DEBUG: UDF адаптер получен: {udf_adapter}")
+        
+        # Получаем сообщения с помощью UDF
+        print(f"🔍 DEBUG: Вызываем get_dialog_messages...")
+        messages = await udf_adapter.get_dialog_messages(
+            user_id1=str(current_user.id),
+            user_id2=user_id,
+            limit=limit,
+            offset=offset
+        )
+        
+        print(f"✅ UDF: Получено {len(messages)} сообщений")
+        return messages
+        
+    except Exception as e:
+        print(f"❌ UDF: Ошибка получения сообщений: {e}")
+        print(f"🔍 DEBUG: Тип ошибки: {type(e)}")
+        import traceback
+        print(f"🔍 DEBUG: Полная трассировка:\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Ошибка получения сообщений: {str(e)}")
+
+
+@app.get("/dialog/{user_id}/recent_udf", response_model=List[DialogMessageResponse])
+async def get_recent_dialog_messages_udf(
+    user_id: str,
+    limit: int = Query(50, ge=1, le=100, description="Количество последних сообщений"),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Получение последних сообщений диалога с использованием UDF функций Redis
+    """
+    print(f"📖 UDF: Получение последних {limit} сообщений диалога между {current_user.id} и {user_id}")
+    print(f"🔍 DEBUG: Начало функции get_recent_dialog_messages_udf")
+    
+    try:
+        print(f"🔍 DEBUG: Попытка получить UDF адаптер...")
+        udf_adapter = get_redis_dialog_adapter_udf()
+        print(f"🔍 DEBUG: UDF адаптер получен: {udf_adapter}")
+        
+        # Получаем последние сообщения с помощью UDF
+        print(f"🔍 DEBUG: Вызываем get_recent_dialog_messages...")
+        messages = await udf_adapter.get_recent_dialog_messages(
+            user_id1=str(current_user.id),
+            user_id2=user_id,
+            limit=limit
+        )
+        
+        print(f"✅ UDF: Получено {len(messages)} последних сообщений")
+        return messages
+        
+    except Exception as e:
+        print(f"❌ UDF: Ошибка получения последних сообщений: {e}")
+        print(f"🔍 DEBUG: Тип ошибки: {type(e)}")
+        import traceback
+        print(f"🔍 DEBUG: Полная трассировка:\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Ошибка получения последних сообщений: {str(e)}")
+
+
+@app.get("/dialog/stats_udf")
+async def get_dialog_stats_udf(current_user: User = Depends(get_current_user)):
+    """
+    Получение статистики по диалогам с использованием UDF функций Redis
+    """
+    print(f"📊 UDF: Получение статистики диалогов для пользователя {current_user.id}")
+    print(f"🔍 DEBUG: Начало функции get_dialog_stats_udf")
+    
+    try:
+        print(f"🔍 DEBUG: Попытка получить UDF адаптер...")
+        udf_adapter = get_redis_dialog_adapter_udf()
+        print(f"🔍 DEBUG: UDF адаптер получен: {udf_adapter}")
+        
+        # Получаем статистику с помощью UDF
+        print(f"🔍 DEBUG: Вызываем get_dialog_stats...")
+        stats = await udf_adapter.get_dialog_stats()
+        
+        print(f"✅ UDF: Статистика получена: {stats}")
+        return stats
+        
+    except Exception as e:
+        print(f"❌ UDF: Ошибка получения статистики: {e}")
+        print(f"🔍 DEBUG: Тип ошибки: {type(e)}")
+        import traceback
+        print(f"🔍 DEBUG: Полная трассировка:\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Ошибка получения статистики: {str(e)}")

@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Домашнее задание №7. Отчет по применению In-Memory СУБД для модуля диалогов</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        h1 {
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            margin-top: 30px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+        pre {
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            overflow-x: auto;
+        }
+        code {
+            font-family: Consolas, Monaco, 'Andale Mono', monospace;
+            background-color: #f8f8f8;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        .highlight {
+            background-color: #ffffcc;
+            padding: 2px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .note {
+            background-color: #e7f3fe;
+            border-left: 6px solid #2196F3;
+            padding: 10px;
+            margin: 15px 0;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border-left: 6px solid #ffc107;
+            padding: 10px;
+            margin: 15px 0;
+        }
+        .success {
+            background-color: #d4edda;
+            border-left: 6px solid #28a745;
+            padding: 10px;
+            margin: 15px 0;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+        .architecture-diagram {
+            text-align: center;
+            margin: 20px 0;
+            font-family: monospace;
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .comparison-table {
+            margin: 20px 0;
+        }
+        .improvement {
+            font-weight: bold;
+        }
+        .improvement.positive {
+            color: #28a745;
+        }
+        .improvement.negative {
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <h1>OTUS. Highload Architecture</h1>
+    <h2>ДЗ № 7 - Применение In-Memory СУБД для модуля диалогов</h2>
+    <h3>Авдонин Дмитрий</h3>
+
+    <h2>Задача</h2>
+    <p>Перенести хранение модуля диалогов из PostgreSQL в In-Memory СУБД (Redis) с использованием UDF (User Defined Functions) и провести сравнительное нагрузочное тестирование:</p>
+    <ul>
+        <li>Выбрать модуль приложения для переноса (диалоги)</li>
+        <li>Провести нагрузочное тестирование с PostgreSQL</li>
+        <li>Вынести хранение данных в Redis с UDF</li>
+        <li>Провести повторное нагрузочное тестирование</li>
+        <li>Сравнить результаты производительности</li>
+    </ul>
+
+    <h2>Архитектура решения</h2>
+    
+    <div class="architecture-diagram">
+        <pre>
+                    ИСХОДНАЯ АРХИТЕКТУРА (PostgreSQL)
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Test Client   │    │  FastAPI App     │    │   PostgreSQL    │
+│   (aiohttp)     │◄──►│  (Dialogs API)   │◄──►│   (Citus)       │
+│                 │    │                  │    │                 │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+
+                    НОВАЯ АРХИТЕКТУРА (Redis UDF)
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Test Client   │    │  FastAPI App     │    │     Redis       │
+│   (aiohttp)     │◄──►│  (Dialogs API)   │◄──►│   + UDF Lua     │
+│                 │    │                  │    │   Functions     │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+        </pre>
+    </div>
+
+    <h3>Компоненты системы</h3>
+    <ul>
+        <li><strong>FastAPI Application</strong> - основное приложение с API диалогов</li>
+        <li><strong>PostgreSQL (Citus)</strong> - исходная реляционная СУБД</li>
+        <li><strong>Redis + UDF</strong> - In-Memory СУБД с пользовательскими функциями</li>
+        <li><strong>Test Scripts</strong> - автоматизированные скрипты нагрузочного тестирования</li>
+        <li><strong>Performance Analyzer</strong> - система сбора и анализа метрик</li>
+    </ul>
+
+    <h2>Реализация переноса в Redis UDF</h2>
+    
+    <h3>Структура данных в Redis</h3>
+    <p>Для хранения диалогов в Redis была разработана следующая структура:</p>
+    
+    <pre><code># Структура ключей Redis для диалогов:
+dialog:{dialog_id}:messages     # Список сообщений диалога
+dialog:{dialog_id}:participants # Участники диалога
+user:{user_id}:dialogs         # Список диалогов пользователя
+message:{message_id}           # Данные сообщения</code></pre>
+
+    <h3>UDF функции для Redis</h3>
+    <p>Разработаны специальные Lua-функции для оптимизации операций с диалогами:</p>
+    
+    <pre><code>-- Функция отправки сообщения в диалог
+local function send_message_to_dialog(dialog_id, message_data)
+    -- Добавляем сообщение в список диалога
+    redis.call('LPUSH', 'dialog:' .. dialog_id .. ':messages', message_data)
+    
+    -- Обновляем время последнего сообщения
+    redis.call('HSET', 'dialog:' .. dialog_id, 'last_message_time', 
+               redis.call('TIME')[1])
+    
+    -- Уведомляем участников
+    local participants = redis.call('SMEMBERS', 
+                                   'dialog:' .. dialog_id .. ':participants')
+    for i, user_id in ipairs(participants) do
+        redis.call('SADD', 'user:' .. user_id .. ':unread_dialogs', dialog_id)
+    end
+    
+    return 'OK'
+end
+
+-- Функция получения сообщений диалога
+local function get_dialog_messages(dialog_id, limit, offset)
+    local messages = redis.call('LRANGE', 
+                               'dialog:' .. dialog_id .. ':messages', 
+                               offset or 0, 
+                               (offset or 0) + (limit or 50) - 1)
+    return messages
+end</code></pre>
+
+    <h2>Нагрузочное тестирование</h2>
+    
+    <h3>Параметры тестирования</h3>
+    <div class="note">
+        <p><strong>Конфигурация тестов:</strong></p>
+        <ul>
+            <li>Количество пользователей: 40</li>
+            <li>Сообщений в диалоге: 20</li>
+            <li>Диалогов на пользователя: 10</li>
+            <li>Общее количество сообщений: 8,000</li>
+            <li>Общее количество операций чтения: 400</li>
+        </ul>
+    </div>
+
+    <h3>Автоматизация тестирования</h3>
+    <p>Созданы специализированные скрипты для автоматического тестирования:</p>
+    
+    <pre><code># test_dialogs_postgres.sh - тестирование PostgreSQL
+#!/bin/bash
+echo "🚀 Тестирование PostgreSQL..."
+
+# Проверка доступности сервиса
+curl -f http://localhost:9000/health || exit 1
+
+# Активация виртуального окружения
+source venv/bin/activate
+pip install aiohttp
+
+# Запуск тестирования
+python3 -c "
+import asyncio
+from performance_test_dialogs import run_performance_test
+
+asyncio.run(run_performance_test(
+    users=40,
+    messages_per_dialog=20,
+    dialogs_per_user=10,
+    backend='postgresql',
+    output_file='lesson-07/dialog_metrics_postgresql.json'
+))
+"</code></pre>
+
+    <h2>Результаты сравнительного тестирования</h2>
+    
+    <div class="success">
+        <p><strong>РЕЗУЛЬТАТ ТЕСТИРОВАНИЯ:</strong> Проведено успешное сравнение производительности PostgreSQL и Redis UDF для операций с диалогами.</p>
+    </div>
+
+    <h3>Сводная таблица результатов</h3>
+    <table class="comparison-table">
+        <thead>
+            <tr>
+                <th>Операция</th>
+                <th>PostgreSQL (сек)</th>
+                <th>Redis UDF (сек)</th>
+                <th>Лучший результат</th>
+                <th>Улучшение</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Отправка сообщений</td>
+                <td>21.588</td>
+                <td>19.466</td>
+                <td>Redis UDF</td>
+                <td><span class="improvement positive">+9.8%</span></td>
+            </tr>
+            <tr>
+                <td>Чтение сообщений</td>
+                <td>1.910</td>
+                <td>1.684</td>
+                <td>Redis UDF</td>
+                <td><span class="improvement positive">+11.8%</span></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Детальные метрики производительности</h3>
+    
+    <h4>Отправка сообщений</h4>
+    <table>
+        <tr>
+            <th>Метрика</th>
+            <th>PostgreSQL</th>
+            <th>Redis UDF</th>
+        </tr>
+        <tr>
+            <td>Среднее время выполнения</td>
+            <td>21.588 сек</td>
+            <td>19.466 сек</td>
+        </tr>
+        <tr>
+            <td>Операций в секунду</td>
+            <td>0.0</td>
+            <td>0.1</td>
+        </tr>
+        <tr>
+            <td>Медиана</td>
+            <td>21.588 сек</td>
+            <td>19.466 сек</td>
+        </tr>
+        <tr>
+            <td>95-й перцентиль</td>
+            <td>21.588 сек</td>
+            <td>19.466 сек</td>
+        </tr>
+    </table>
+
+    <h4>Чтение сообщений</h4>
+    <table>
+        <tr>
+            <th>Метрика</th>
+            <th>PostgreSQL</th>
+            <th>Redis UDF</th>
+        </tr>
+        <tr>
+            <td>Среднее время выполнения</td>
+            <td>1.910 сек</td>
+            <td>1.684 сек</td>
+        </tr>
+        <tr>
+            <td>Операций в секунду</td>
+            <td>0.5</td>
+            <td>0.6</td>
+        </tr>
+        <tr>
+            <td>Медиана</td>
+            <td>1.910 сек</td>
+            <td>1.684 сек</td>
+        </tr>
+        <tr>
+            <td>95-й перцентиль</td>
+            <td>1.910 сек</td>
+            <td>1.684 сек</td>
+        </tr>
+    </table>
+
+    <h2>Инструментарий и автоматизация</h2>
+    
+    <h3>Созданные компоненты</h3>
+    <ul>
+        <li><code>test_dialogs_postgres.sh</code> - скрипт тестирования PostgreSQL</li>
+        <li><code>test_dialogs_redis.sh</code> - скрипт тестирования Redis UDF</li>
+        <li><code>dialog_comparison_report.py</code> - генератор HTML отчетов</li>
+        <li><code>performance_test_dialogs.py</code> - модуль нагрузочного тестирования</li>
+        <li><code>lesson-07/README.md</code> - подробная инструкция по воспроизведению</li>
+    </ul>
+
+    <h3>Автоматизированный процесс тестирования</h3>
+    <pre><code># Полный цикл тестирования
+./stop_service.sh                              # Очистка окружения
+./start_service.sh --backend postgresql       # Запуск PostgreSQL
+./test_dialogs_postgres.sh                    # Тест PostgreSQL
+
+./stop_service.sh                              # Переключение
+./start_service.sh --backend redis            # Запуск Redis UDF  
+./test_dialogs_redis.sh                       # Тест Redis UDF
+
+python3 dialog_comparison_report.py           # Генерация отчета</code></pre>
+
+    <h2>Выводы и результаты</h2>
+    
+    <div class="success">
+        <h3>✅ Выполненные требования</h3>
+        <ul>
+            <li><strong>Модуль диалогов вынесен в In-Memory СУБД (Redis)</strong></li>
+            <li><strong>Логика перенесена в UDF (Lua-функции Redis)</strong></li>
+            <li><strong>Проведено нагрузочное тестирование ДО и ПОСЛЕ</strong></li>
+            <li><strong>Получено сравнение результатов производительности</strong></li>
+        </ul>
+    </div>
+
+    <h3>Основные достижения</h3>
+    <ul>
+        <li><strong>Улучшение производительности:</strong> Redis UDF показал лучшие результаты по всем операциям</li>
+        <li><strong>Отправка сообщений:</strong> улучшение на 9.8% (с 21.588с до 19.466с)</li>
+        <li><strong>Чтение сообщений:</strong> улучшение на 11.8% (с 1.910с до 1.684с)</li>
+    </ul>
+
+    <h2>Файлы проекта</h2>
+    <pre><code>lesson-07/
+├── dialog_metrics_postgresql.json     # Метрики PostgreSQL
+├── dialog_metrics_redis_udf.json      # Метрики Redis UDF
+├── dialog_performance_comparison.html # Сравнительный отчет
+├── homework_report.html               # Данный отчет
+└── README.md                          # Инструкция по воспроизведению
+
+Корневая директория:
+├── test_dialogs_postgres.sh           # Скрипт тестирования PostgreSQL
+├── test_dialogs_redis.sh              # Скрипт тестирования Redis UDF
+├── dialog_comparison_report.py        # Генератор отчетов
+└── performance_test_dialogs.py        # Модуль тестирования</code></pre>
+</body>
+</html> 

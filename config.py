@@ -1,6 +1,14 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import os
+import traceback
 from typing import Optional
-from pydantic import BaseSettings
+try:
+    from pydantic_settings import BaseSettings
+except ImportError:
+    from pydantic import BaseSettings
+from enum import Enum
 
 
 class Settings(BaseSettings):
@@ -16,7 +24,7 @@ class Settings(BaseSettings):
     DATABASE_SLAVE_URL: Optional[str] = None
     
     # Настройки Redis
-    REDIS_URL: str = "redis://localhost:6379/0"
+    REDIS_URL: Optional[str] = None
     REDIS_PASSWORD: Optional[str] = None
     
     # Настройки RabbitMQ
@@ -50,13 +58,98 @@ class Settings(BaseSettings):
     ENABLE_METRICS: bool = True
     METRICS_PORT: int = 8002
     
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    model_config = {
+        "env_file": ".env",
+        "case_sensitive": True,
+        "extra": "allow"  # Разрешаем дополнительные поля
+    }
+
+
+class DialogBackend(Enum):
+    """Типы бэкендов для диалогов"""
+    POSTGRESQL = "postgresql"
+    REDIS = "redis"
+
+
+class Config:
+    """Конфигурация приложения"""
+    
+    def __init__(self):
+        print(f"🔍 ОТЛАДКА: Инициализация Config")
+        print(f"🔍 СТЕК ВЫЗОВОВ:\n{''.join(traceback.format_stack())}")
+        
+        # Настройки диалогов
+        dialog_backend_env = os.getenv("DIALOG_BACKEND", "postgresql")
+        print(f"🔍 DIALOG_BACKEND из env: {dialog_backend_env}")
+        self.DIALOG_BACKEND = DialogBackend(dialog_backend_env)
+        
+        # PostgreSQL настройки
+        self.POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost")
+        self.POSTGRES_PORT = int(os.getenv("POSTGRES_PORT", "5432"))
+        self.POSTGRES_DB = os.getenv("POSTGRES_DB", "social_network")
+        self.POSTGRES_USER = os.getenv("POSTGRES_USER", "postgres")
+        self.POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "password")
+        
+        # Redis настройки - используем переменные окружения из Docker Compose
+        redis_host_env = os.getenv("REDIS_HOST", "localhost")
+        redis_port_env = os.getenv("REDIS_PORT", "6379")
+        redis_db_env = os.getenv("REDIS_DB", "0")
+        
+        print(f"🔍 REDIS_HOST из env: {redis_host_env}")
+        print(f"🔍 REDIS_PORT из env: {redis_port_env}")
+        print(f"🔍 REDIS_DB из env: {redis_db_env}")
+        
+        self.REDIS_HOST = redis_host_env
+        self.REDIS_PORT = int(redis_port_env)
+        self.REDIS_DB = int(redis_db_env)
+        
+        # Настройки диалогов
+        self.DIALOG_MESSAGES_LIMIT = int(os.getenv("DIALOG_MESSAGES_LIMIT", "100"))
+        self.DIALOG_TTL_DAYS = int(os.getenv("DIALOG_TTL_DAYS", "30"))
+        
+        print(f"🔍 Итоговые значения Config:")
+        print(f"🔍 self.REDIS_HOST = {self.REDIS_HOST}")
+        print(f"🔍 self.REDIS_PORT = {self.REDIS_PORT}")
+        print(f"🔍 self.REDIS_DB = {self.REDIS_DB}")
+    
+    def get_redis_url(self) -> str:
+        """Получение URL для подключения к Redis"""
+        print(f"🔍 ОТЛАДКА: get_redis_url() вызван")
+        print(f"🔍 СТЕК ВЫЗОВОВ:\n{''.join(traceback.format_stack())}")
+        
+        # Приоритет: переменная окружения REDIS_URL, затем составляем из компонентов
+        redis_url = os.getenv("REDIS_URL")
+        print(f"🔍 REDIS_URL из env: {redis_url}")
+        
+        if redis_url:
+            print(f"🔍 Возвращаем REDIS_URL из env: {redis_url}")
+            return redis_url
+        
+        # Используем уже загруженные переменные экземпляра
+        result_url = f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
+        print(f"🔍 Составляем URL из компонентов: {result_url}")
+        print(f"🔍 self.REDIS_HOST = {self.REDIS_HOST}")
+        print(f"🔍 self.REDIS_PORT = {self.REDIS_PORT}")
+        print(f"🔍 self.REDIS_DB = {self.REDIS_DB}")
+        
+        return result_url
+    
+    def is_redis_backend(self) -> bool:
+        """Проверка, используется ли Redis для диалогов"""
+        return self.DIALOG_BACKEND == DialogBackend.REDIS
+    
+    def is_postgresql_backend(self) -> bool:
+        """Проверка, используется ли PostgreSQL для диалогов"""
+        return self.DIALOG_BACKEND == DialogBackend.POSTGRESQL
 
 
 # Глобальный экземпляр настроек
 settings = Settings()
+
+# Глобальный экземпляр конфигурации
+print(f"🔍 ОТЛАДКА: Создание глобального экземпляра config")
+print(f"🔍 СТЕК ВЫЗОВОВ:\n{''.join(traceback.format_stack())}")
+config = Config()
 
 
 def get_database_url() -> str:
@@ -71,7 +164,9 @@ def get_slave_database_url() -> str:
 
 def get_redis_url() -> str:
     """Получить URL Redis"""
-    return settings.REDIS_URL
+    print(f"🔍 ОТЛАДКА: функция get_redis_url() вызвана")
+    print(f"🔍 СТЕК ВЫЗОВОВ:\n{''.join(traceback.format_stack())}")
+    return Config().get_redis_url()
 
 
 def get_rabbitmq_url() -> str:
