@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Домашнее задание №8. Отчет по выносу диалогов в отдельный сервис</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        h1 {
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            margin-top: 30px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+        pre {
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            overflow-x: auto;
+        }
+        code {
+            font-family: Consolas, Monaco, 'Andale Mono', monospace;
+            background-color: #f8f8f8;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        .highlight {
+            background-color: #ffffcc;
+            padding: 2px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .note {
+            background-color: #e7f3fe;
+            border-left: 6px solid #2196F3;
+            padding: 10px;
+            margin: 15px 0;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border-left: 6px solid #ffc107;
+            padding: 10px;
+            margin: 15px 0;
+        }
+        .success {
+            background-color: #d4edda;
+            border-left: 6px solid #28a745;
+            padding: 10px;
+            margin: 15px 0;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+        .architecture-diagram {
+            text-align: center;
+            margin: 20px 0;
+            font-family: monospace;
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .comparison-table {
+            margin: 20px 0;
+        }
+        .improvement {
+            font-weight: bold;
+        }
+        .improvement.positive {
+            color: #28a745;
+        }
+        .improvement.negative {
+            color: #dc3545;
+        }
+        .step {
+            background-color: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 15px;
+            margin: 15px 0;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            themeVariables: {
+                fontFamily: 'Arial, sans-serif',
+                fontSize: '14px'
+            }
+        });
+    </script>
+</head>
+<body>
+    <h1>OTUS. Highload Architecture</h1>
+    <h2>ДЗ № 8 - Разделение монолита на сервисы</h2>
+    <h3>Авдонин Дмитрий</h3>
+
+    <h2>Задача</h2>
+    <p>Вынести систему диалогов в отдельный сервис с обеспечением:</p>
+    <ul>
+        <li>REST API для работы с диалогами</li>
+        <li>Сквозного логирования (x-request-id)</li>
+        <li>Обратной совместимости с существующими клиентами</li>
+        <li>Версионирования API (v1 - legacy, v2 - новый)</li>
+    </ul>
+
+    <h2>Архитектура решения</h2>
+    
+        <h3>Общая архитектура системы</h3>
+    <div class="architecture-diagram">
+        <div class="mermaid">
+graph TD
+    subgraph "ИСХОДНАЯ АРХИТЕКТУРА (Монолит)"
+        A[Client App] --> B[Monolith App<br/>Users, Posts, Dialogs<br/>Friends, Auth, Cache]
+        B --> C[PostgreSQL + Redis]
+    end
+    
+    subgraph " "
+        D[" "]
+    end
+    
+    subgraph "НОВАЯ АРХИТЕКТУРА (Микросервисы)"
+        E[Client App] --> F[Nginx<br/>Port 80]
+        
+        F --> G[v1 API<br/>Legacy]
+        F --> H[v2 API<br/>Modern] 
+        F --> I[Other APIs<br/>Users, etc]
+        
+        G --> J[Monolith<br/>Port 8000]
+        I --> K[Monolith<br/>Port 8000]
+        
+        J --> L[Dialog Wrapper]
+        L --> M[Dialog Service<br/>Port 8002]
+        H --> M
+        
+        M --> N[Redis UDF<br/>Lua Scripts]
+        N --> O[Redis<br/>Dialogs]
+        
+        K --> P[PostgreSQL<br/>Users, Posts]
+    end
+    
+    style A fill:#e1f5fe
+    style B fill:#fff3e0
+    style C fill:#f3e5f5
+    style E fill:#e1f5fe
+    style F fill:#e8f5e8
+    style G fill:#fff9c4
+    style H fill:#e3f2fd
+    style I fill:#f1f8e9
+    style J fill:#fff3e0
+    style K fill:#fff3e0
+    style L fill:#fce4ec
+    style M fill:#e0f2f1
+    style N fill:#fff8e1
+    style O fill:#ffebee
+    style P fill:#f3e5f5
+        </div>
+    </div>
+
+
+
+    <h3>Компоненты системы</h3>
+    <ul>
+        <li><strong>Nginx</strong> - обратный прокси для маршрутизации запросов</li>
+        <li><strong>Monolith</strong> - основное приложение с legacy функциями</li>
+        <li><strong>Dialog Service</strong> - выделенный микросервис диалогов</li>
+        <li><strong>Dialog Wrapper</strong> - прокси-компонент в монолите</li>
+        <li><strong>Redis UDF</strong> - хранилище диалогов с Lua-скриптами</li>
+        <li><strong>PostgreSQL</strong> - основная база данных</li>
+    </ul>
+
+    <h2>Поэтапная реализация</h2>
+
+    <div class="step">
+        <h3>Этап 1: Создание Dialog Service</h3>
+        <p>Создан отдельный микросервис для обработки диалогов:</p>
+        <ul>
+            <li>FastAPI приложение на порту 8002</li>
+            <li>REST API для отправки и получения сообщений</li>
+            <li>Интеграция с Redis UDF для хранения данных</li>
+            <li>Middleware для обработки x-request-id</li>
+        </ul>
+    </div>
+
+    <div class="step">
+        <h3>Этап 2: Настройка Nginx для маршрутизации</h3>
+        <p>Конфигурация обратного прокси для версионирования API:</p>
+        <pre><code>location ~ ^/v1/dialog/(.*) {
+    proxy_pass http://monolith/dialog/$1;
+    proxy_set_header x-request-id $request_id;
+}
+
+location ~ ^/v2/dialog/(.*) {
+    proxy_pass http://dialog_service/api/v1/dialogs/$1;
+    proxy_set_header x-request-id $request_id;
+}</code></pre>
+    </div>
+
+    <div class="step">
+        <h3>Этап 3: Создание Dialog Wrapper</h3>
+        <p>Прокси-компонент в монолите для перенаправления запросов:</p>
+        <ul>
+            <li>HTTP клиент для взаимодействия с Dialog Service</li>
+            <li>Обработка ошибок и логирование</li>
+            <li>Передача авторизации и request-id</li>
+            <li>Полное удаление локальной логики диалогов</li>
+        </ul>
+    </div>
+
+    <div class="step">
+        <h3>Этап 4: Интеграция Redis UDF</h3>
+        <p>Использование Lua-скриптов для атомарных операций:</p>
+        <pre><code>-- dialog.lua - основные функции для работы с диалогами
+local function save_message(from_user_id, to_user_id, text)
+    local message_id = redis.call('INCR', 'message_counter')
+    local dialog_key = get_dialog_key(from_user_id, to_user_id)
+    local message_data = cjson.encode({
+        id = message_id,
+        from_user_id = from_user_id,
+        to_user_id = to_user_id,
+        text = text,
+        created_at = redis.call('TIME')[1]
+    })
+    redis.call('LPUSH', dialog_key, message_data)
+    return message_id
+end</code></pre>
+    </div>
+
+    <h2>Архитектурные принципы</h2>
+
+    <h3>Strangler Fig Pattern</h3>
+    <p>Применен паттерн постепенного вытеснения монолита:</p>
+    <ul>
+        <li>Legacy клиенты продолжают работать через v1 API</li>
+        <li>Новые клиенты используют v2 API</li>
+        <li>Вся логика диалогов физически находится в Dialog Service</li>
+        <li>Монолит только проксирует запросы</li>
+    </ul>
+
+
+
+    <h2>Сквозное логирование</h2>
+
+    <h3>Middleware для x-request-id</h3>
+    <p>Реализована сквозная трассировка запросов:</p>
+    <pre><code># Nginx генерирует request-id
+proxy_set_header x-request-id $request_id;
+
+# Монолит передает request-id в Dialog Service
+headers = {"Authorization": authorization}
+if request_id:
+    headers["x-request-id"] = request_id
+
+# Dialog Service логирует с request-id
+logger.info(f"[{request_id}] Processing dialog request")</code></pre>
+
+
+
+    <h2>Тестирование и валидация</h2>
+
+    <h3>Автоматизированные тесты</h3>
+    <p>Создан комплексный тестовый скрипт для проверки микросервисной архитектуры:</p>
+    
+    <pre><code>#!/bin/bash
+# test_dialog_service.sh - Комплексный тест микросервисной архитектуры
+
+# Проверка доступности всех сервисов с health checks
+check_service "Nginx" 80
+check_service "Monolith" 8000  
+check_service "Dialog Service" 8002
+check_health "Monolith"
+check_health "Dialog Service"
+
+# Регистрация тестовых пользователей с UUID
+register_user USER1_SUFFIX
+register_user USER2_SUFFIX
+login_user USER1_ID
+login_user USER2_ID
+
+# Тестирование v1 API (legacy клиенты) - 5 сообщений
+# Маршрут: http://localhost/v1/dialog/* → Nginx → Монолит → Dialog Service
+test_v1_api:
+  - "Привет из legacy клиента!"
+  - "Тестирую v1 API через монолит"
+  - "Проверяю обратную совместимость"
+  - "Legacy системы должны работать"
+  - "Всё отлично работает!"
+
+# Тестирование v2 API (современные клиенты) - 5 сообщений  
+# Маршрут: http://localhost/v2/dialog/* → Nginx → Dialog Service
+test_v2_api:
+  - "Привет! Как дела?"
+  - "Тестирую новый Dialog Service"
+  - "Это сообщение через v2 API"
+  - "Проверяю функциональность диалогов"
+  - "Надеюсь, всё работает корректно!"
+
+# Тестирование двунаправленного диалога - 6 сообщений
+# Смешанное использование v1 и v2 API между пользователями
+test_bidirectional_dialog:
+  - User1 → User2 (v2): "Привет! Как дела?"
+  - User2 → User1 (v1): "Привет! Всё отлично, а у тебя?"
+  - User1 → User2 (v2): "Тоже хорошо! Тестирую новый Dialog Service"
+  - User2 → User1 (v1): "Круто! Как тебе новая архитектура?"
+  - User1 → User2 (v2): "Отлично работает! Очень быстро"
+  - User2 → User1 (v1): "Рад слышать! Версионирование API супер!"
+
+# Получение сообщений и статистики через оба API
+# Проверка end-to-end функциональности</code></pre>
+
+    <h3>Результаты тестирования</h3>
+
+
+
+    <table class="comparison-table">
+        <thead>
+            <tr>
+                <th>Тест</th>
+                <th>API Version</th>
+                <th>Маршрут запроса</th>
+                <th>Отправлено</th>
+                <th>Получено</th>
+                <th>Статус</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>v1 API тест</td>
+                <td>v1 (Legacy)</td>
+                <td>Nginx → Монолит → Dialog Service</td>
+                <td>5</td>
+                <td>5</td>
+                <td><span class="improvement positive">✅ Успешно</span></td>
+            </tr>
+            <tr>
+                <td>v2 API тест</td>
+                <td>v2 (Modern)</td>
+                <td>Nginx → Dialog Service</td>
+                <td>5</td>
+                <td>10 (включая v1)</td>
+                <td><span class="improvement positive">✅ Успешно</span></td>
+            </tr>
+            <tr>
+                <td>Двунаправленный диалог</td>
+                <td>v1 + v2 (Mixed)</td>
+                <td>Nginx → оба маршрута</td>
+                <td>6</td>
+                <td>16 / 3</td>
+                <td><span class="improvement positive">✅ Успешно</span></td>
+            </tr>
+
+            <tr>
+                <td colspan="3"><strong>Итого сообщений в тесте:</strong></td>
+                <td><strong>16</strong></td>
+                <td><strong>Все корректно</strong></td>
+                <td><span class="improvement positive">✅ Успешно</span></td>
+            </tr>
+        </tbody>
+    </table>
+
+
+
+    <h2>Управляющие скрипты</h2>
+
+
+    
+    <pre><code># start_service.sh - запуск всех сервисов
+./start_service.sh
+# Запускает: PostgreSQL, Redis, Dialog Service, Monolith, Nginx
+
+# stop_service.sh - остановка всех сервисов  
+./stop_service.sh
+# Останавливает все контейнеры и очищает ресурсы
+
+# test_dialog_service.sh - комплексное тестирование
+./test_dialog_service.sh
+# Полный цикл тестирования v1 и v2 API</code></pre>
+
+    <h3>Docker Compose конфигурация</h3>
+    <pre><code>services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+
+  monolith:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DIALOG_SERVICE_URL=http://dialog-service:8002
+
+  dialog-service:
+    build: ./dialog-service
+    ports:
+      - "8002:8000"
+    environment:
+      - REDIS_HOST=redis</code></pre>
+
+    <h2>Файловая структура проекта</h2>
+    
+    <pre><code>otus-highload/
+├── lesson-08/
+│   └── homework_report.html           # Данный отчет
+├── dialog-service/                    # Микросервис диалогов
+│   ├── app/
+│   │   ├── main.py                   # FastAPI приложение
+│   │   ├── api/dialogs.py            # API эндпоинты
+│   │   ├── services/
+│   │   │   ├── dialog_service.py     # Бизнес-логика
+│   │   │   └── redis_adapter.py      # Redis UDF интеграция
+│   │   └── middleware/
+│   │       └── request_id.py         # Middleware для трассировки
+│   ├── Dockerfile                    # Docker образ сервиса
+│   └── requirements.txt              # Зависимости
+├── services/
+│   └── dialog_wrapper.py             # Прокси в монолите
+├── clients/
+│   └── dialog_service_client.py      # HTTP клиент
+├── middleware/
+│   └── request_id_middleware.py      # Middleware для монолита
+├── nginx.conf                        # Конфигурация Nginx
+├── docker-compose.yml               # Оркестрация сервисов
+├── start_service.sh                 # Скрипт запуска
+├── stop_service.sh                  # Скрипт остановки
+└── test_dialog_service.sh           # Скрипт тестирования</code></pre>
+
+    <h2>Выводы и результаты</h2>
+    
+    <div class="success">
+        <h3>✅ Выполненные требования</h3>
+        <ul>
+            <li><strong>Диалоги вынесены в отдельный сервис</strong> - создан Dialog Service с FastAPI</li>
+            <li><strong>REST API реализован</strong> - полный набор эндпоинтов для отправки, получения и статистики</li>
+            <li><strong>Сквозное логирование настроено</strong> - x-request-id проходит через всю цепочку: Nginx → Монолит/Dialog Service → Redis</li>
+            <li><strong>Обратная совместимость обеспечена</strong> - legacy клиенты работают через v1 API без изменений</li>
+            <li><strong>Версионирование API реализовано</strong> - v1 (legacy через монолит) и v2 (прямой доступ к сервису)</li>
+        </ul>
+    </div>
+
+
+
+
+
+
+
+</body>
+</html> 

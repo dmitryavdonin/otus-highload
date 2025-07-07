@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, status, Query, Header
+from fastapi import FastAPI, HTTPException, Depends, status, Query, Header, Request
 import logging
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
@@ -14,9 +14,10 @@ from sqlalchemy import select
 from models import User, AuthToken, Friendship, Post, PostCreateRequest, PostUpdateRequest, PostIdResponse, PostResponse, DialogMessageRequest, DialogMessageResponse
 from db import get_master_session, get_slave_session, get_user_by_id, get_user_by_token, create_auth_token, get_user_friends, save_dialog_message, get_dialog_messages
 from cache import redis_cache
-from dialog_service import dialog_service
+from services.dialog_wrapper import dialog_wrapper
 from redis_adapter_udf import get_redis_dialog_adapter_udf, init_redis_adapter_udf, close_redis_adapter_udf
 from redis_adapter import init_redis_adapter, close_redis_adapter
+from middleware.request_id_middleware import RequestIdMiddleware, setup_logging_with_request_id
 
 load_dotenv()
 
@@ -29,13 +30,17 @@ async def lifespan(app: FastAPI):
     """Handle startup and shutdown events for the application."""
     print(f"🔍 DEBUG: Начало функции lifespan")
     
+    # Настройка логирования с request_id
+    setup_logging_with_request_id()
+    logger.info("Request ID logging configured")
+    
     # Initialize connections and services on startup
     is_redis_available = await redis_cache.ping()
     if not is_redis_available:
         logger.warning("Redis cache is not available. Feed caching will be disabled.")
     
-    # Инициализация сервиса диалогов при запуске
-    await dialog_service.init()
+    # Инициализация dialog_wrapper при запуске
+    await dialog_wrapper.init()
     
     # Получаем переменные окружения для Redis
     REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
@@ -55,22 +60,24 @@ async def lifespan(app: FastAPI):
         print(f"❌ DEBUG: Ошибка инициализации обычного Redis адаптера: {e}")
     
     # Инициализация UDF адаптера Redis
-    try:
-        print(f"🔍 DEBUG: Начинаем инициализацию UDF адаптера Redis...")
-        print(f"🔍 DEBUG: Передаем redis_url: {redis_url}")
-        await init_redis_adapter_udf(redis_url)
-        logger.info("Redis UDF adapter initialized successfully")
-        print(f"✅ DEBUG: UDF адаптер Redis инициализирован успешно")
-        
-        # Проверяем, что адаптер действительно инициализирован
-        from redis_adapter_udf import redis_dialog_adapter_udf
-        print(f"🔍 DEBUG: Проверка глобальной переменной redis_dialog_adapter_udf: {redis_dialog_adapter_udf}")
-        
-    except Exception as e:
-        logger.error(f"Failed to initialize Redis UDF adapter: {e}")
-        print(f"❌ DEBUG: Ошибка инициализации UDF адаптера Redis: {e}")
-        import traceback
-        print(f"🔍 DEBUG: Полная трассировка ошибки:\n{traceback.format_exc()}")
+    # try:
+    #     print(f"🔍 DEBUG: Начинаем инициализацию UDF адаптера Redis...")
+    #     print(f"🔍 DEBUG: Передаем redis_url: {redis_url}")
+    #     await init_redis_adapter_udf(redis_url)
+    #     logger.info("Redis UDF adapter initialized successfully")
+    #     print(f"✅ DEBUG: UDF адаптер Redis инициализирован успешно")
+    #     
+    #     # Проверяем, что адаптер действительно инициализирован
+    #     from redis_adapter_udf import redis_dialog_adapter_udf
+    #     print(f"🔍 DEBUG: Проверка глобальной переменной redis_dialog_adapter_udf: {redis_dialog_adapter_udf}")
+    #     
+    # except Exception as e:
+    #     logger.error(f"Failed to initialize Redis UDF adapter: {e}")
+    #     print(f"❌ DEBUG: Ошибка инициализации UDF адаптера Redis: {e}")
+    #     import traceback
+    #     print(f"🔍 DEBUG: Полная трассировка ошибки:\n{traceback.format_exc()}")
+    
+    print(f"🔍 DEBUG: UDF адаптер отключен для использования нового dialog service")
     
     print(f"🔍 DEBUG: Завершение инициализации в lifespan")
     
@@ -79,9 +86,9 @@ async def lifespan(app: FastAPI):
     # Close connections and cleanup on shutdown
     print(f"🔍 DEBUG: Начало завершения работы в lifespan")
     await redis_cache.close()
-    await dialog_service.close()
+    await dialog_wrapper.close()
     await close_redis_adapter()
-    await close_redis_adapter_udf()
+    # await close_redis_adapter_udf()  # отключено для использования нового dialog service
     print(f"🔍 DEBUG: Завершение работы в lifespan завершено")
 
 app = FastAPI(
@@ -91,7 +98,24 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Добавляем middleware для request-id
+app.add_middleware(RequestIdMiddleware)
+
 security = HTTPBearer()
+
+@app.get("/", tags=["Health"])
+async def root():
+    """
+    Корневой endpoint для проверки доступности сервиса
+    """
+    return {"status": "ok", "service": "social-network-monolith", "version": "0.2.0"}
+
+@app.get("/health", tags=["Health"])
+async def health():
+    """
+    Health check endpoint
+    """
+    return {"status": "healthy", "service": "social-network-monolith", "version": "0.2.0"}
 
 class LoginRequest(BaseModel):
     id: str
@@ -545,49 +569,74 @@ async def get_friends_feed(
 async def send_dialog_message(
     user_id: str, 
     message: DialogMessageRequest,
+    request: Request,
     current_user_id: str = Depends(verify_token)
 ):
     """
-    Отправка сообщения пользователю
+    Отправка сообщения пользователю (Legacy API - проксирование в Dialog Service)
     """
+    request_id = request.headers.get("x-request-id", str(uuid.uuid4()))
+    
     # Проверяем, существует ли получатель
     recipient = await get_user_by_id(user_id)
     if not recipient:
         raise HTTPException(status_code=404, detail="Получатель не найден")
     
-    # Сохраняем сообщение через универсальный сервис
-    await dialog_service.save_dialog_message(
-        from_user_id=current_user_id,
-        to_user_id=user_id,
-        text=message.text
-    )
+    # Логирование
+    logger.info(f"[{request_id}] Legacy API: Sending message from {current_user_id} to {user_id}")
     
-    return {"status": "success"}
+    # Проксируем в Dialog Service
+    auth_header = request.headers.get("authorization")
+    result = await dialog_wrapper.send_message(current_user_id, user_id, message.text, auth_header)
+    message_id = result.get("id")
+    
+    logger.info(f"[{request_id}] Legacy API: Message sent successfully with ID: {message_id}")
+    
+    return {"status": "success", "message_id": message_id}
 
 @app.get("/dialog/{user_id}/list", response_model=List[DialogMessageResponse], tags=["Dialogs"])
 async def list_dialog_messages(
     user_id: str,
+    request: Request,
     current_user_id: str = Depends(verify_token)
 ):
     """
-    Получение списка сообщений между текущим пользователем и указанным пользователем
+    Получение списка сообщений между текущим пользователем и указанным пользователем (Legacy API - проксирование в Dialog Service)
     """
+    request_id = request.headers.get("x-request-id", str(uuid.uuid4()))
+    
     # Проверяем, существует ли собеседник
     interlocutor = await get_user_by_id(user_id)
     if not interlocutor:
         raise HTTPException(status_code=404, detail="Пользователь для диалога не найден")
     
-    # Получаем сообщения через универсальный сервис
-    messages = await dialog_service.get_dialog_messages(current_user_id, user_id)
+    # Логирование
+    logger.info(f"[{request_id}] Legacy API: Getting messages between {current_user_id} and {user_id}")
+    
+    # Проксируем в Dialog Service
+    auth_header = request.headers.get("authorization")
+    messages = await dialog_wrapper.get_dialog_messages(user_id, auth_header, limit=100, offset=0)
+    
+    logger.info(f"[{request_id}] Legacy API: Retrieved {len(messages)} messages")
     
     return messages
 
 @app.get("/dialog/stats", tags=["Dialogs"])
-async def get_dialog_stats(current_user_id: str = Depends(verify_token)):
+async def get_dialog_stats(request: Request, current_user_id: str = Depends(verify_token)):
     """
-    Получение статистики по диалогам (для администраторов и разработчиков)
+    Получение статистики по диалогам (Legacy API - проксирование в Dialog Service)
     """
-    stats = await dialog_service.get_dialog_stats()
+    request_id = request.headers.get("x-request-id", str(uuid.uuid4()))
+    
+    # Логирование
+    logger.info(f"[{request_id}] Legacy API: Getting dialog stats for user {current_user_id}")
+    
+    # Проксируем в Dialog Service
+    auth_header = request.headers.get("authorization")
+    stats = await dialog_wrapper.get_dialog_stats(auth_header)
+    
+    logger.info(f"[{request_id}] Legacy API: Retrieved dialog stats")
+    
     return stats
 
 async def get_current_user(user_id: str = Depends(verify_token)) -> User:

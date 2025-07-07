@@ -1,60 +1,34 @@
 #!/bin/bash
 
+# ==============================================================================
+# Скрипт для остановки всех сервисов, запущенных через docker-compose (ДЗ-8)
+# ==============================================================================
+
 # Цвета для вывода
 RED='\033[0;31m'
 GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Директории и файлы
-PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PID_FILE="$PROJECT_DIR/websocket_server.pid"
-LOG_DIR="$PROJECT_DIR/logs"
+COMPOSE_FILE="docker-compose.yml"
 
-echo -e "${BLUE}🛑 Остановка WebSocket сервера${NC}"
+echo -e "${BLUE}🚀 Остановка всех сервисов, запущенных через docker-compose...${NC}"
 echo "=================================================="
 
-# Останавливаем WebSocket сервер
-if [ -f "$PID_FILE" ]; then
-    PID=$(cat "$PID_FILE")
-    if ps -p "$PID" > /dev/null 2>&1; then
-        echo -e "${YELLOW}⏳ Остановка WebSocket сервера (PID: $PID)...${NC}"
-        kill "$PID"
-        
-        # Ждем завершения процесса
-        for i in {1..10}; do
-            if ! ps -p "$PID" > /dev/null 2>&1; then
-                echo -e "${GREEN}✅ WebSocket сервер остановлен${NC}"
-                break
-            fi
-            if [ $i -eq 10 ]; then
-                echo -e "${YELLOW}⚠️  Принудительная остановка...${NC}"
-                kill -9 "$PID" 2>/dev/null || true
-            fi
-            sleep 1
-        done
-    else
-        echo -e "${YELLOW}⚠️  Процесс с PID $PID не найден${NC}"
-    fi
-    rm -f "$PID_FILE"
-else
-    echo -e "${YELLOW}⚠️  PID файл не найден, сервер возможно не запущен${NC}"
+# Проверка наличия Docker и Docker Compose
+if ! command -v docker &> /dev/null || ! command -v docker-compose &> /dev/null; then
+    echo -e "${RED}❌ Docker или Docker Compose не установлены.${NC}"
+    exit 1
 fi
 
-# Останавливаем Docker сервисы
-echo -e "${BLUE}🐳 Остановка Docker сервисов...${NC}"
-docker-compose down --remove-orphans
+# Выполняем docker-compose down
+docker-compose -f $COMPOSE_FILE down --remove-orphans
 
-# Удаление volumes
-echo -e "${BLUE}🗑️  Удаление Docker volumes...${NC}"
-docker-compose down -v
-
-if [ $? -eq 0 ]; then
-    echo -e "${GREEN}✅ Docker сервисы и volumes удалены${NC}"
-else
-    echo -e "${YELLOW}⚠️  Ошибка остановки Docker сервисов${NC}"
+if [ $? -ne 0 ]; then
+    echo -e "${RED}❌ Произошла ошибка при остановке сервисов.${NC}"
+    exit 1
 fi
 
-echo ""
-echo -e "${GREEN}🎉 Все сервисы остановлены и данные очищены!${NC}" 
+echo "=================================================="
+echo -e "${GREEN}✅ Все сервисы успешно остановлены и удалены.${NC}"
+echo "" 

@@ -1,77 +1,112 @@
 #!/bin/bash
 
-# Цвета для вывода
+# ==============================================================================
+# Комплексный скрипт для тестирования Dialog Service с бэкендом Redis (ДЗ-8)
+#
+# Что делает скрипт:
+# 1. Запускает всю систему (monolith, dialog-service, db) с Redis-бэкендом.
+# 2. Проводит функциональное тестирование (регистрация, авторизация, сообщения).
+# 3. Останавливает и очищает систему после тестов.
+# ==============================================================================
+
+set -eo pipefail
+
+# -- Переменные и настройки --
+# Цвета для красивого вывода
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-echo -e "${BLUE}🚀 ТЕСТИРОВАНИЕ ДИАЛОГОВ С REDIS UDF${NC}"
-echo "=================================================================="
+# URL-адреса сервисов
+MONOLITH_URL="http://localhost:8000"
+DIALOG_SERVICE_URL="http://localhost:8002/api/v1/dialogs"
 
-# Проверяем доступность сервиса
-echo -e "${BLUE}🔍 Проверка доступности сервиса...${NC}"
-for i in {1..30}; do
-    if curl -s http://localhost:9000/docs > /dev/null 2>&1; then
-        echo -e "${GREEN}✅ Сервис доступен${NC}"
-        break
-    fi
-    if [ $i -eq 30 ]; then
-        echo -e "${RED}❌ Сервис недоступен после 30 попыток${NC}"
-        echo -e "${YELLOW}💡 Запустите сервис командой: ./start_service.sh --backend redis${NC}"
-        exit 1
-    fi
-    echo -e "${YELLOW}⏳ Попытка $i/30...${NC}"
-    sleep 2
-done
+# -- Функции --
 
-# Проверяем наличие виртуального окружения
-VENV_DIR="./venv"
-if [ -d "$VENV_DIR" ]; then
-    echo -e "${BLUE}🐍 Активация виртуального окружения...${NC}"
-    source "$VENV_DIR/bin/activate"
-    
-    # Проверяем наличие aiohttp
-    if ! python -c "import aiohttp" 2>/dev/null; then
-        echo -e "${BLUE}📦 Установка aiohttp...${NC}"
-        pip install aiohttp
-    fi
-else
-    echo -e "${YELLOW}⚠️  Виртуальное окружение не найдено${NC}"
-    echo -e "${BLUE}💡 Рекомендуется создать виртуальное окружение:${NC}"
-    echo "   python3 -m venv venv"
-    echo "   source venv/bin/activate"
-    echo "   pip install aiohttp"
-    echo ""
-    
-    # Проверяем системный Python
-    if ! python3 -c "import aiohttp" 2>/dev/null; then
-        echo -e "${RED}❌ aiohttp не установлен в системном Python${NC}"
-        echo "Установите: pip3 install aiohttp"
-        exit 1
-    fi
+# Вывод сообщений
+function print_info { echo -e "${BLUE}[INFO] $1${NC}"; }
+function print_success { echo -e "${GREEN}[SUCCESS] $1${NC}"; }
+function print_warning { echo -e "${YELLOW}[WARNING] $1${NC}"; }
+function print_error { echo -e "${RED}[ERROR] $1${NC}"; }
+function print_header { echo -e "\n${YELLOW}==================================================${NC}"; echo -e "${YELLOW}$1${NC}"; echo -e "${YELLOW}==================================================${NC}"; }
+
+# Функция для выхода и очистки
+function cleanup_and_exit {
+    print_header "🛑 Завершение работы и очистка"
+    ./stop_service.sh
+    exit 1
+}
+
+# -- Основная логика --
+
+# 1. Запуск системы с Redis бэкендом
+print_header "🚀 Этап 1: Запуск системы с бэкендом Redis"
+./start_service.sh --backend redis
+if [ $? -ne 0 ]; then
+    print_error "Не удалось запустить систему. Прерывание теста."
+    exit 1
 fi
 
-# Создаем папку для результатов
-mkdir -p lesson-07
+# Устанавливаем обработчик для выхода (если что-то пойдет не так)
+trap cleanup_and_exit SIGINT SIGTERM
 
-# Устанавливаем переменную окружения для Redis UDF
-export DIALOG_BACKEND=redis
+# 2. Функциональное тестирование
+print_header "🧪 Этап 2: Функциональное тестирование"
 
-echo -e "${GREEN}✅ Используется Redis UDF бэкенд${NC}"
-echo -e "${BLUE}🧪 Запуск тестирования производительности диалогов...${NC}"
-echo "Параметры:"
-echo "  • Пользователи: 40"
-echo "  • Сообщений на диалог: 20"
-echo "  • Диалогов на пользователя: 10"
-echo "  • Бэкенд: Redis UDF"
-echo "  • Результаты: lesson-07/dialog_metrics_redis_udf.json"
-echo ""
+# Регистрация пользователей
+print_info "Регистрация двух тестовых пользователей..."
+USER1_SUFFIX=$(uuidgen | head -c 8)
+USER2_SUFFIX=$(uuidgen | head -c 8)
 
-# Запускаем тест с Redis UDF
-python3 dialog_performance_test_redis.py --users 40 --messages 20 --dialogs 10
+USER1_ID=$(curl -s -X POST "${MONOLITH_URL}/user/register" -H "Content-Type: application/json" -d "{\"first_name\":\"Test1\",\"second_name\":\"User${USER1_SUFFIX}\",\"birthdate\":\"2000-01-01T00:00:00\",\"age\":30,\"city\":\"Moscow\",\"password\":\"test\"}" | jq -r .id)
+USER2_ID=$(curl -s -X POST "${MONOLITH_URL}/user/register" -H "Content-Type: application/json" -d "{\"first_name\":\"Test2\",\"second_name\":\"User${USER2_SUFFIX}\",\"birthdate\":\"2000-01-01T00:00:00\",\"age\":30,\"city\":\"Moscow\",\"password\":\"test\"}" | jq -r .id)
 
-echo ""
-echo -e "${GREEN}🎉 Тестирование Redis UDF завершено!${NC}"
-echo -e "${BLUE}📊 Результаты сохранены в: lesson-07/dialog_metrics_redis_udf.json${NC}" 
+if [ -z "$USER1_ID" ] || [ -z "$USER2_ID" ] || [ "$USER1_ID" == "null" ] || [ "$USER2_ID" == "null" ]; then
+    print_error "Не удалось зарегистрировать пользователей."
+    cleanup_and_exit
+fi
+print_success "Пользователи зарегистрированы: USER1_ID=$USER1_ID, USER2_ID=$USER2_ID"
+
+# Авторизация
+print_info "Авторизация первого пользователя..."
+TOKEN1=$(curl -s -X POST "${MONOLITH_URL}/user/login" -H "Content-Type: application/json" -d "{\"id\":\"${USER1_ID}\",\"password\":\"test\"}" | jq -r .token)
+if [ -z "$TOKEN1" ] || [ "$TOKEN1" == "null" ]; then
+    print_error "Не удалось авторизовать пользователя 1."
+    cleanup_and_exit
+fi
+print_success "Пользователь 1 успешно авторизован."
+
+# Отправка сообщений через Dialog Service
+print_info "Отправка 3 сообщений от USER1 к USER2..."
+for i in {1..3}; do
+    curl -s -X POST "${DIALOG_SERVICE_URL}/send" \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer ${TOKEN1}" \
+        -d "{\"to_user_id\":\"${USER2_ID}\",\"text\":\"Привет от User1, сообщение #${i}\"}"
+done
+print_success "Сообщения успешно отправлены."
+
+# Получение диалога
+print_info "Получение диалога между пользователями..."
+MESSAGES=$(curl -s -X GET "${DIALOG_SERVICE_URL}/${USER2_ID}/messages" \
+    -H "Authorization: Bearer ${TOKEN1}")
+
+MESSAGE_COUNT=$(echo "$MESSAGES" | jq '. | length')
+
+if [ "$MESSAGE_COUNT" -eq 3 ]; then
+    print_success "Диалог получен, количество сообщений: $MESSAGE_COUNT. Тест пройден!"
+else
+    print_error "Ожидалось 3 сообщения, но получено $MESSAGE_COUNT."
+    echo "Ответ сервера:"
+    echo "$MESSAGES" | jq
+    cleanup_and_exit
+fi
+
+# 3. Остановка системы
+print_header "🎉 Этап 3: Тестирование завершено успешно. Остановка системы"
+./stop_service.sh
+
+print_success "Все тесты пройдены!"
+exit 0 

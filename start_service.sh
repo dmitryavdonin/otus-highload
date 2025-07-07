@@ -1,23 +1,35 @@
 #!/bin/bash
 
-# Цвета для вывода
+# ==============================================================================
+# Скрипт для запуска Dialog Service и его зависимостей (ДЗ-8)
+# ==============================================================================
+
+# -- Настройки и переменные --
+# Цвета для красивого вывода
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Директории и файлы
-PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VENV_DIR="$PROJECT_DIR/venv"
-LOG_DIR="$PROJECT_DIR/logs"
-PID_FILE="$PROJECT_DIR/websocket_server.pid"
-LOG_FILE="$LOG_DIR/websocket_server.log"
-
 # Параметры по умолчанию
-BACKEND="postgresql"
+BACKEND="redis"
+COMPOSE_FILE="docker-compose.yml"
 
-# Обработка аргументов командной строки
+# -- Функции --
+function print_help {
+    echo "Использование: $0 [--backend postgresql|redis]"
+    echo ""
+    echo "Опции:"
+    echo "  --backend    Выбор бэкенда для Dialog Service (postgresql или redis). По умолчанию: redis."
+    echo "  --help, -h   Показать эту справку."
+    echo ""
+    echo "Примеры:"
+    echo "  $0                           # Запуск с Redis (с использованием UDF)"
+    echo "  $0 --backend postgresql     # Запуск с PostgreSQL"
+}
+
+# -- Обработка аргументов --
 while [[ $# -gt 0 ]]; do
     case $1 in
         --backend)
@@ -25,21 +37,12 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         --help|-h)
-            echo "Использование: $0 [--backend postgresql|redis]"
-            echo ""
-            echo "Опции:"
-            echo "  --backend    Выбор бэкенда для диалогов (postgresql или redis)"
-            echo "  --help       Показать эту справку"
-            echo ""
-            echo "Примеры:"
-            echo "  $0                           # Запуск с PostgreSQL"
-            echo "  $0 --backend postgresql     # Запуск с PostgreSQL"
-            echo "  $0 --backend redis          # Запуск с Redis"
+            print_help
             exit 0
             ;;
         *)
             echo -e "${RED}❌ Неизвестный параметр: $1${NC}"
-            echo "Используйте --help для справки"
+            print_help
             exit 1
             ;;
     esac
@@ -47,210 +50,86 @@ done
 
 # Проверка корректности бэкенда
 if [[ "$BACKEND" != "postgresql" && "$BACKEND" != "redis" ]]; then
-    echo -e "${RED}❌ Неверный бэкенд: $BACKEND${NC}"
-    echo "Доступные бэкенды: postgresql, redis"
+    echo -e "${RED}❌ Неверный бэкенд: '$BACKEND'. Доступные: postgresql, redis.${NC}"
     exit 1
 fi
 
-echo -e "${BLUE}🚀 Запуск сервисов с бэкендом: $BACKEND${NC}"
+# -- Основная логика --
+echo -e "${BLUE}🚀 Запуск системы для Dialog Service с бэкендом: $BACKEND${NC}"
 echo "=================================================="
 
-# Создаем директорию для логов
-mkdir -p "$LOG_DIR"
-
-# Проверяем, запущен ли уже сервер
-if [ -f "$PID_FILE" ]; then
-    PID=$(cat "$PID_FILE")
-    if ps -p "$PID" > /dev/null 2>&1; then
-        echo -e "${YELLOW}⚠️  WebSocket сервер уже запущен (PID: $PID)${NC}"
-        echo "Для остановки используйте: ./stop_service.sh"
-        exit 1
-    else
-        echo -e "${YELLOW}⚠️  Найден старый PID файл, удаляем...${NC}"
-        rm -f "$PID_FILE"
-    fi
-fi
-
-# Проверяем наличие Docker
-if ! command -v docker &> /dev/null; then
-    echo -e "${RED}❌ Docker не установлен${NC}"
+# Проверка наличия Docker и Docker Compose
+if ! command -v docker &> /dev/null || ! command -v docker-compose &> /dev/null; then
+    echo -e "${RED}❌ Docker или Docker Compose не установлены. Пожалуйста, установите их.${NC}"
     exit 1
 fi
 
-# Проверяем наличие Docker Compose
-if ! command -v docker-compose &> /dev/null; then
-    echo -e "${RED}❌ Docker Compose не установлен${NC}"
-    exit 1
-fi
-
-echo -e "${BLUE}🐳 Запуск Docker сервисов с бэкендом: $BACKEND${NC}"
-
-# Останавливаем существующие контейнеры
-echo -e "${BLUE}🛑 Остановка существующих контейнеров...${NC}"
-docker-compose down --remove-orphans > /dev/null 2>&1
-
-# Пересобираем образ приложения
-echo -e "${BLUE}🔨 Пересборка образа приложения...${NC}"
-docker-compose build app
-if [ $? -ne 0 ]; then
-    echo -e "${RED}❌ Ошибка пересборки образа приложения${NC}"
-    exit 1
-fi
-echo -e "${GREEN}✅ Образ приложения пересобран${NC}"
-
-# Устанавливаем переменную окружения для бэкенда
+# 1. Устанавливаем переменную окружения для docker-compose
 export DIALOG_BACKEND=$BACKEND
+echo -e "[INFO] Установлена переменная окружения: DIALOG_BACKEND=${GREEN}$BACKEND${NC}"
 
-# Запускаем сервисы
-docker-compose up -d
+# 2. Останавливаем существующие контейнеры, чтобы избежать конфликтов
+echo -e "${BLUE}🛑 Остановка существующих сервисов...${NC}"
+docker-compose -f $COMPOSE_FILE down --remove-orphans > /dev/null 2>&1
 
+# 3. Сборка образов
+echo -e "${BLUE}🔨 Сборка Docker-образов (monolith, dialog-service)...${NC}"
+docker-compose -f $COMPOSE_FILE build
 if [ $? -ne 0 ]; then
-    echo -e "${RED}❌ Ошибка запуска Docker сервисов${NC}"
+    echo -e "${RED}❌ Ошибка сборки Docker-образов.${NC}"
+    exit 1
+fi
+echo -e "${GREEN}✅ Образы успешно собраны.${NC}"
+
+# 4. Запуск всех сервисов в фоновом режиме
+echo -e "${BLUE}🐳 Запуск сервисов через docker-compose...${NC}"
+docker-compose -f $COMPOSE_FILE up -d
+if [ $? -ne 0 ]; then
+    echo -e "${RED}❌ Ошибка запуска сервисов через docker-compose.${NC}"
     exit 1
 fi
 
-echo -e "${GREEN}✅ Docker сервисы запущены с бэкендом: $BACKEND${NC}"
+# 5. Ожидание готовности Dialog Service
+DIALOG_SERVICE_URL="http://localhost:8002/health"
+echo -e "${BLUE}⏳ Ожидание готовности Dialog Service по адресу: $DIALOG_SERVICE_URL...${NC}"
 
-# Ожидание готовности PostgreSQL
-echo -e "${BLUE}⏳ Ожидание готовности PostgreSQL...${NC}"
-for i in {1..30}; do
-    if docker-compose exec -T citus-coordinator pg_isready -U postgres > /dev/null 2>&1; then
-        echo -e "${GREEN}✅ PostgreSQL готов${NC}"
+for i in {1..45}; do
+    # Проверяем health-check с помощью curl
+    STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" $DIALOG_SERVICE_URL)
+    if [ "$STATUS_CODE" -eq 200 ]; then
+        echo -e "${GREEN}✅ Dialog Service готов и отвечает на порту 8002!${NC}"
         break
     fi
-    if [ $i -eq 30 ]; then
-        echo -e "${RED}❌ PostgreSQL не готов после 30 секунд${NC}"
+    
+    # Проверка, не упал ли контейнер
+    CONTAINER_STATUS=$(docker-compose -f $COMPOSE_FILE ps dialog-service | grep "dialog-service")
+    if [[ $CONTAINER_STATUS != *"Up"* && $CONTAINER_STATUS != *"healthy"* ]]; then
+        echo -e "${RED}❌ Контейнер 'dialog-service' не запустился или упал.${NC}"
+        echo -e "${YELLOW}   Проверьте логи: docker-compose logs dialog-service${NC}"
+        exit 1
+    fi
+
+    if [ $i -eq 45 ]; then
+        echo -e "${RED}❌ Dialog Service не ответил в течение 45 секунд.${NC}"
+        echo -e "${YELLOW}   Проверьте логи контейнера: docker-compose logs dialog-service${NC}"
         exit 1
     fi
     sleep 1
 done
 
-# Ожидание готовности Redis
-echo -e "${BLUE}⏳ Ожидание готовности Redis...${NC}"
-for i in {1..30}; do
-    if docker-compose exec -T redis redis-cli ping > /dev/null 2>&1; then
-        echo -e "${GREEN}✅ Redis готов${NC}"
-        break
-    fi
-    if [ $i -eq 30 ]; then
-        echo -e "${RED}❌ Redis не готов после 30 секунд${NC}"
-        exit 1
-    fi
-    sleep 1
-done
-
-# Ожидание готовности RabbitMQ
-echo -e "${BLUE}⏳ Ожидание готовности RabbitMQ...${NC}"
-for i in {1..60}; do
-    if docker-compose exec -T rabbitmq rabbitmqctl status > /dev/null 2>&1; then
-        echo -e "${GREEN}✅ RabbitMQ готов${NC}"
-        break
-    fi
-    if [ $i -eq 60 ]; then
-        echo -e "${RED}❌ RabbitMQ не готов после 60 секунд${NC}"
-        exit 1
-    fi
-    sleep 1
-done
-
-# Определяем имя контейнера приложения
-APP_CONTAINER="app"
-
-# Ожидание готовности основного приложения
-echo -e "${BLUE}⏳ Ожидание готовности основного приложения...${NC}"
-for i in {1..30}; do
-    if curl -s http://localhost:9000/docs > /dev/null 2>&1; then
-        echo -e "${GREEN}✅ Основное приложение готово${NC}"
-        break
-    fi
-    if [ $i -eq 30 ]; then
-        echo -e "${RED}❌ Основное приложение не готово после 30 секунд${NC}"
-        exit 1
-    fi
-    sleep 1
-done
-
-# Создаем виртуальное окружение если его нет
-if [ ! -d "$VENV_DIR" ]; then
-    echo -e "${BLUE}🐍 Создание виртуального окружения...${NC}"
-    python3 -m venv "$VENV_DIR"
-    if [ $? -ne 0 ]; then
-        echo -e "${RED}❌ Ошибка создания виртуального окружения${NC}"
-        exit 1
-    fi
-fi
-
-# Активируем виртуальное окружение
-source "$VENV_DIR/bin/activate"
-
-# Устанавливаем зависимости
-if [ -f requirements.txt ]; then
-    echo -e "${BLUE}📦 Установка зависимостей...${NC}"
-    pip install -r requirements.txt > /dev/null 2>&1
-    if [ $? -ne 0 ]; then
-        echo -e "${RED}❌ Ошибка установки зависимостей${NC}"
-        exit 1
-    fi
-    echo -e "${GREEN}✅ Зависимости установлены${NC}"
-fi
 
 echo ""
-echo -e "${GREEN}🎉 Все сервисы готовы!${NC}"
 echo "=================================================="
-echo -e "${BLUE}📊 Информация о сервисах:${NC}"
-echo "  • Основное приложение: http://localhost:9000"
-echo "  • PostgreSQL (Citus): localhost:5432"
-echo "  • Redis: localhost:6379"
-echo "  • RabbitMQ: localhost:5672 (admin:admin123)"
-echo "  • RabbitMQ Management: http://localhost:15672"
-echo "  • Бэкенд диалогов: $BACKEND"
-echo ""
-
-# Запускаем WebSocket сервер в фоне
-echo -e "${BLUE}🚀 Запуск WebSocket сервера...${NC}"
-echo "  • Сервер: http://localhost:8001"
-echo "  • Логи: $LOG_FILE"
-echo "  • PID файл: $PID_FILE"
-
-# Запускаем сервер в фоне с перенаправлением логов
-nohup python websocket_server.py > "$LOG_FILE" 2>&1 &
-SERVER_PID=$!
-
-# Сохраняем PID
-echo $SERVER_PID > "$PID_FILE"
-
-# Ждем немного, чтобы убедиться, что сервер запустился
-sleep 3
-
-# Проверяем, что процесс еще работает
-if ps -p $SERVER_PID > /dev/null 2>&1; then
-    echo -e "${GREEN}✅ WebSocket сервер запущен (PID: $SERVER_PID)${NC}"
-    echo ""
-    echo -e "${GREEN}🎯 Сервер готов к работе!${NC}"
-else
-    echo -e "${RED}❌ Ошибка запуска WebSocket сервера${NC}"
-    echo "Проверьте логи: cat $LOG_FILE"
-    rm -f "$PID_FILE"
-    exit 1
-fi
-
-echo ""
-echo -e "${GREEN}🎉 Все сервисы запущены и готовы к работе!${NC}"
+echo -e "${GREEN}🎉 Все сервисы успешно запущены!${NC}"
+echo "--------------------------------------------------"
+echo -e "${BLUE}  Nginx (прокси):      ${GREEN}http://localhost:80${NC}"
+echo -e "${BLUE}  Monolith API:        ${GREEN}http://localhost:8000${NC}"
+echo -e "${BLUE}  Dialog Service API:  ${GREEN}http://localhost:8002${NC}"
+echo -e "${BLUE}  Бэкенд для диалогов: ${YELLOW}$BACKEND${NC}"
 echo "=================================================="
-echo -e "${BLUE}📊 Доступные сервисы:${NC}"
-echo "  • Основное приложение: http://localhost:9000"
-echo "  • PostgreSQL (Citus): localhost:5432"
-echo "  • Redis: localhost:6379"
-echo "  • RabbitMQ: localhost:5672 (UI: http://localhost:15672)"
-echo "  • WebSocket сервер: http://localhost:8001"
-echo "  • Бэкенд диалогов: $BACKEND"
 echo ""
-echo -e "${YELLOW}💡 Для тестирования производительности диалогов:${NC}"
-if [ "$BACKEND" = "redis" ]; then
-    echo "   ./run_dialog_performance_test_redis.sh"
-else
-    echo "   ./run_dialog_performance_test.sh"
-fi
+echo -e "${YELLOW}💡 Теперь можно запустить тесты:${NC}"
+echo "   ./test_dialog_service.sh"
 echo ""
 echo -e "${YELLOW}💡 Для остановки всех сервисов используйте:${NC}"
 echo "   ./stop_service.sh" 
