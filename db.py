@@ -6,7 +6,26 @@ from datetime import datetime, timedelta
 import secrets
 import uuid
 from typing import List
-from database import get_slave_session, get_master_session
+import os
+
+# Выбираем модуль базы данных в зависимости от переменной окружения
+USE_HAPROXY = os.getenv("USE_HAPROXY", "false").lower() == "true"
+
+if USE_HAPROXY:
+    # Для урока 9 с HAProxy
+    import sys
+    import os
+    sys.path.append(os.path.join(os.path.dirname(__file__), 'lesson-09'))
+    from database_ha import get_slave_session, get_master_session, get_db_info
+    print("🔧 Загружен модуль database_ha для работы с HAProxy")
+else:
+    # Стандартный режим
+    from database import get_slave_session, get_master_session
+    print("🔧 Загружен стандартный модуль database")
+    
+    # Заглушка для get_db_info в стандартном режиме
+    def get_db_info():
+        return {"mode": "standard", "use_haproxy": False}
 
 # Import models after database is initialized to avoid circular imports
 from models import User, AuthToken, Friendship, DialogMessage

@@ -1,36 +1,8 @@
-# Docker
-.docker/
-docker-compose.override.yml
-
-# PostgreSQL
-postgres_data/
-postgres_slave1_data/
-postgres_slave2_data/
-
-# IDE and editor files
-.idea/
-.vscode/
-*.swp
-*.swo
-.DS_Store
-
-# System files
-Thumbs.db
-desktop.ini
-
-# Logs
-*.log
-logs/
-
-# Environment variables
-.env
-.env.*
-
-# Build artifacts
+# Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+*.so
 .Python
 build/
 develop-eggs/
@@ -44,12 +16,53 @@ parts/
 sdist/
 var/
 wheels/
+pip-wheel-metadata/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
-*.egg 
+*.egg
+MANIFEST
 
-backups/
+# Virtual environments
 venv/
+env/
+ENV/
+env.bak/
+venv.bak/
 
-posts.txtdocker-compose.yml.bak
+# Environment variables
+.env
+.env.*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
 nohup.out
+
+# Test outputs
+test_output.log
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Backup files
+*.bak
+*.backup 

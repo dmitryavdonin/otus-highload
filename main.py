@@ -115,7 +115,26 @@ async def health():
     """
     Health check endpoint
     """
-    return {"status": "healthy", "service": "social-network-monolith", "version": "0.2.0"}
+    # Получаем информацию о конфигурации БД если используется HAProxy
+    import os
+    db_info = {}
+    
+    if os.getenv("USE_HAPROXY", "false").lower() == "true":
+        try:
+            from db import get_db_info
+            db_info = get_db_info()
+        except (ImportError, AttributeError):
+            db_info = {"error": "HAProxy database module not available"}
+    
+    instance_name = os.getenv("INSTANCE_NAME", "unknown")
+    
+    return {
+        "status": "ok",
+        "service": "social-network-monolith",
+        "version": "0.2.0",
+        "instance": instance_name,
+        "database_config": db_info
+    }
 
 class LoginRequest(BaseModel):
     id: str

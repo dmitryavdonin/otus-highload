@@ -1,0 +1,23 @@
+INFO:     Started server process [130208]
+INFO:     Waiting for application startup.
+2025-06-01 19:07:03,230 - websocket_server - INFO - Starting WebSocket server...
+2025-06-01 19:07:03,266 - message_queue - INFO - Successfully connected to RabbitMQ
+2025-06-01 19:07:03,266 - rabbitmq_client - INFO - RabbitMQ client connected successfully
+2025-06-01 19:07:03,266 - feed_processor - INFO - Feed processor started successfully
+2025-06-01 19:07:03,266 - websocket_server - INFO - Feed processor started
+2025-06-01 19:07:03,266 - rabbitmq_client - INFO - Starting to consume messages from feed_updates
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+2025-06-01 19:07:03,267 - message_queue - INFO - Started consuming messages from feed queue
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2025-06-01 20:12:07,804 - websocket_server - INFO - Shutting down WebSocket server...
+2025-06-01 20:12:07,805 - message_queue - INFO - Disconnected from RabbitMQ
+2025-06-01 20:12:07,805 - rabbitmq_client - INFO - RabbitMQ client disconnected
+2025-06-01 20:12:07,805 - feed_processor - INFO - Feed processor stopped
+2025-06-01 20:12:07,805 - websocket_server - INFO - Feed processor stopped
+2025-06-01 20:12:07,805 - websocket_manager - INFO - Disconnecting 0 users
+2025-06-01 20:12:07,805 - websocket_manager - INFO - All users disconnected
+2025-06-01 20:12:07,805 - websocket_server - INFO - All WebSocket connections closed
+INFO:     Application shutdown complete.
+INFO:     Finished server process [130208]

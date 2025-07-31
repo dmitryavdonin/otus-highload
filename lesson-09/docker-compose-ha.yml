@@ -1,0 +1,274 @@
+services:
+  # HAProxy для балансировки PostgreSQL
+  haproxy:
+    image: haproxy:2.8-alpine
+    ports:
+      - "5000:5000"  # Мастер для записи
+      - "5001:5001"  # Слейвы для чтения
+      - "8404:8404"  # Статистика HAProxy
+    volumes:
+      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    depends_on:
+      - postgres-master
+      - postgres-slave1
+      - postgres-slave2
+    networks:
+      - postgres_ha_net
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 5 nc -z 127.0.0.1 8404"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # PostgreSQL Мастер
+  postgres-master:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: social_network
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init-master.sh:/docker-entrypoint-initdb.d/01-init-master.sh
+      - ./schema.sql:/docker-entrypoint-initdb.d/02-schema.sql
+      - ./pg_hba.conf:/etc/postgresql/pg_hba.conf
+      - postgres_master_data:/var/lib/postgresql/data
+    command: >
+      postgres
+      -c wal_level=replica
+      -c max_wal_senders=10
+      -c max_replication_slots=10
+      -c hot_standby=on
+      -c wal_keep_size=1GB
+      -c checkpoint_timeout=30s
+      -c max_wal_size=2GB
+      -c hba_file=/etc/postgresql/pg_hba.conf
+    networks:
+      - postgres_ha_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d social_network"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PostgreSQL Слейв 1
+  postgres-slave1:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: social_network
+      POSTGRES_SERVER_NAME: postgres-slave1
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./entrypoint-slave.sh:/usr/local/bin/entrypoint-slave.sh
+      - ./pg_hba.conf:/etc/postgresql/pg_hba.conf
+      - postgres_slave1_data:/var/lib/postgresql/data
+    entrypoint: ["/usr/local/bin/entrypoint-slave.sh"]
+    depends_on:
+      postgres-master:
+        condition: service_healthy
+    networks:
+      - postgres_ha_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PostgreSQL Слейв 2
+  postgres-slave2:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: social_network
+      POSTGRES_SERVER_NAME: postgres-slave2
+    ports:
+      - "5434:5432"
+    volumes:
+      - ./entrypoint-slave.sh:/usr/local/bin/entrypoint-slave.sh
+      - ./pg_hba.conf:/etc/postgresql/pg_hba.conf
+      - postgres_slave2_data:/var/lib/postgresql/data
+    entrypoint: ["/usr/local/bin/entrypoint-slave.sh"]
+    depends_on:
+      postgres-master:
+        condition: service_healthy
+    networks:
+      - postgres_ha_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis для кэширования
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - postgres_ha_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Приложение - инстанс 1
+  app1:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    ports:
+      - "9001:9000"
+    environment:
+      # Настройки HAProxy подключения
+      USE_HAPROXY: "true"
+      DB_MASTER_HOST: "haproxy"
+      DB_MASTER_PORT: "5000"
+      DB_SLAVE_HOST: "haproxy"
+      DB_SLAVE_PORT: "5001"
+      
+      # Основные настройки БД
+      DB_NAME: "social_network"
+      DB_USER: "postgres"
+      DB_PASSWORD: "postgres"
+      
+      # Настройки Redis
+      REDIS_HOST: "redis"
+      REDIS_PORT: "6379"
+      REDIS_DB: "0"
+      
+      # Настройки приложения
+      LOG_LEVEL: "INFO"
+      SECRET_KEY: "your-secret-key-here"
+      INSTANCE_NAME: "app1"
+    depends_on:
+      haproxy:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - postgres_ha_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Приложение - инстанс 2
+  app2:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    ports:
+      - "9002:9000"
+    environment:
+      USE_HAPROXY: "true"
+      DB_MASTER_HOST: "haproxy"
+      DB_MASTER_PORT: "5000"
+      DB_SLAVE_HOST: "haproxy"
+      DB_SLAVE_PORT: "5001"
+      DB_NAME: "social_network"
+      DB_USER: "postgres"
+      DB_PASSWORD: "postgres"
+      REDIS_HOST: "redis"
+      REDIS_PORT: "6379"
+      REDIS_DB: "0"
+      LOG_LEVEL: "INFO"
+      SECRET_KEY: "your-secret-key-here"
+      INSTANCE_NAME: "app2"
+    depends_on:
+      haproxy:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - postgres_ha_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Приложение - инстанс 3
+  app3:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    ports:
+      - "9003:9000"
+    environment:
+      USE_HAPROXY: "true"
+      DB_MASTER_HOST: "haproxy"
+      DB_MASTER_PORT: "5000"
+      DB_SLAVE_HOST: "haproxy"
+      DB_SLAVE_PORT: "5001"
+      DB_NAME: "social_network"
+      DB_USER: "postgres"
+      DB_PASSWORD: "postgres"
+      REDIS_HOST: "redis"
+      REDIS_PORT: "6379"
+      REDIS_DB: "0"
+      LOG_LEVEL: "INFO"
+      SECRET_KEY: "your-secret-key-here"
+      INSTANCE_NAME: "app3"
+    depends_on:
+      haproxy:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - postgres_ha_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Nginx для балансировки приложений
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx-ha.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app1
+      - app2
+      - app3
+    networks:
+      - postgres_ha_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  postgres_master_data:
+    name: lesson09_postgres_master_data
+  postgres_slave1_data:
+    name: lesson09_postgres_slave1_data
+  postgres_slave2_data:
+    name: lesson09_postgres_slave2_data
+  redis_data:
+    name: lesson09_redis_data
+
+networks:
+  postgres_ha_net:
+    driver: bridge
+    name: lesson09_ha_network 

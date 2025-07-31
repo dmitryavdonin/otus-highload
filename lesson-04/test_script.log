@@ -1,0 +1,376 @@
+2025-04-27 16:21:24,439 - INFO - Starting test script
+2025-04-27 16:21:24,439 - INFO - Registering user 1
+2025-04-27 16:21:24,495 - INFO - User 1 registered with ID: aa5ebbe5-7871-4eda-998a-8c7a4d266990
+2025-04-27 16:21:24,695 - INFO - Registering user 2
+2025-04-27 16:21:24,716 - INFO - User 2 registered with ID: e3907b71-102f-42fb-8cb5-52c42ddcabc8
+2025-04-27 16:21:24,917 - INFO - Registering user 3
+2025-04-27 16:21:24,936 - INFO - User 3 registered with ID: 3aa68250-6d67-4501-a239-3d935905d8f4
+2025-04-27 16:21:25,137 - INFO - Registering user 4
+2025-04-27 16:21:25,151 - INFO - User 4 registered with ID: 2c3e235e-248b-40e0-8af1-02110e84ed43
+2025-04-27 16:21:25,351 - INFO - Registering user 5
+2025-04-27 16:21:25,373 - INFO - User 5 registered with ID: 60dbdd1b-cb51-41a2-b74e-86bddd438e2e
+2025-04-27 16:21:25,574 - INFO - Registering user 6
+2025-04-27 16:21:25,592 - INFO - User 6 registered with ID: 38586021-b9ce-4892-8f30-6cc41ffacc29
+2025-04-27 16:21:25,793 - INFO - Registering user 7
+2025-04-27 16:21:25,813 - INFO - User 7 registered with ID: c3ac6646-0045-40ea-a86b-4d3b67b14f86
+2025-04-27 16:21:26,013 - INFO - Registering user 8
+2025-04-27 16:21:26,025 - INFO - User 8 registered with ID: bb345ea9-f667-453f-a63e-8c54242c803c
+2025-04-27 16:21:26,225 - INFO - Registering user 9
+2025-04-27 16:21:26,244 - INFO - User 9 registered with ID: fa7a267b-0d45-4d61-9665-72b60c364b87
+2025-04-27 16:21:26,445 - INFO - Registering user 10
+2025-04-27 16:21:26,464 - INFO - User 10 registered with ID: 73cc0b5e-ebc5-4d25-9d30-517a92bec233
+2025-04-27 16:21:26,665 - INFO - Registering user 11
+2025-04-27 16:21:26,679 - INFO - User 11 registered with ID: f81584d1-c023-469b-b364-05f8c4cf2003
+2025-04-27 16:21:26,879 - INFO - Registering user 12
+2025-04-27 16:21:26,897 - INFO - User 12 registered with ID: 13f0f074-638c-4848-a2b1-0f1afd63a634
+2025-04-27 16:21:27,098 - INFO - Registering user 13
+2025-04-27 16:21:27,117 - INFO - User 13 registered with ID: 89b02c94-3bff-44f0-9831-6f6edb06daa6
+2025-04-27 16:21:27,317 - INFO - Registering user 14
+2025-04-27 16:21:27,336 - INFO - User 14 registered with ID: 816c64da-022e-4a7f-8dcc-7588490a88ef
+2025-04-27 16:21:27,537 - INFO - Registering user 15
+2025-04-27 16:21:27,555 - INFO - User 15 registered with ID: 48c1a45a-8c98-4f1f-967e-82616d52b52f
+2025-04-27 16:21:27,756 - INFO - Registering user 16
+2025-04-27 16:21:27,776 - INFO - User 16 registered with ID: 99d4b1a1-1d4f-4ea1-ad3d-05dbe2cbcaf6
+2025-04-27 16:21:27,977 - INFO - Registering user 17
+2025-04-27 16:21:27,995 - INFO - User 17 registered with ID: 5556390a-bc71-4c04-9c37-2dddbd30b1a4
+2025-04-27 16:21:28,196 - INFO - Registering user 18
+2025-04-27 16:21:28,214 - INFO - User 18 registered with ID: b9e6b057-75eb-4f1c-a460-d1805e3d9086
+2025-04-27 16:21:28,415 - INFO - Registering user 19
+2025-04-27 16:21:28,429 - INFO - User 19 registered with ID: 0c80e9eb-5a29-48d0-a16e-936564fc3d7a
+2025-04-27 16:21:28,629 - INFO - Registering user 20
+2025-04-27 16:21:28,643 - INFO - User 20 registered with ID: 93110443-e548-4ca1-b097-4a4071d51f6d
+2025-04-27 16:21:28,844 - INFO - Registering user 21
+2025-04-27 16:21:28,861 - INFO - User 21 registered with ID: 27c8bbec-f7fa-4fc0-bde1-117c0dba1a4e
+2025-04-27 16:21:29,062 - INFO - Registering user 22
+2025-04-27 16:21:29,079 - INFO - User 22 registered with ID: 6f8bdc51-4140-4484-b2cf-46f008358b93
+2025-04-27 16:21:29,280 - INFO - Registering user 23
+2025-04-27 16:21:29,298 - INFO - User 23 registered with ID: afa13bac-057f-4aac-91f8-d8915680a10f
+2025-04-27 16:21:29,499 - INFO - Registering user 24
+2025-04-27 16:21:29,512 - INFO - User 24 registered with ID: f21f51e9-6994-4c4c-a844-20be4d512ede
+2025-04-27 16:21:29,713 - INFO - Registering user 25
+2025-04-27 16:21:29,729 - INFO - User 25 registered with ID: d4cc0ba6-7698-43cf-944a-9e07fd297a91
+2025-04-27 16:21:29,930 - INFO - Registering user 26
+2025-04-27 16:21:29,945 - INFO - User 26 registered with ID: 6fced93d-a8bb-4498-b3f9-4249bd708c43
+2025-04-27 16:21:30,146 - INFO - Registering user 27
+2025-04-27 16:21:30,163 - INFO - User 27 registered with ID: 1bd039f5-c6d2-40d6-9ad5-4a5325f07a52
+2025-04-27 16:21:30,364 - INFO - Registering user 28
+2025-04-27 16:21:30,382 - INFO - User 28 registered with ID: 25a06aed-0c89-47a5-b247-cb470bcfbaf7
+2025-04-27 16:21:30,583 - INFO - Registering user 29
+2025-04-27 16:21:30,598 - INFO - User 29 registered with ID: 8e6f82d1-cf97-49c7-b5ce-0cd00c21ddfe
+2025-04-27 16:21:30,799 - INFO - Registering user 30
+2025-04-27 16:21:30,817 - INFO - User 30 registered with ID: 596d7e7a-e5b4-40e7-b255-ade528918a60
+2025-04-27 16:21:31,018 - INFO - Registering user 31
+2025-04-27 16:21:31,036 - INFO - User 31 registered with ID: 7682c1b9-e6de-46fc-80d5-bf76d94fa16e
+2025-04-27 16:21:31,237 - INFO - Registering user 32
+2025-04-27 16:21:31,248 - INFO - User 32 registered with ID: 21e276db-5286-4903-a45a-e06b61b57a95
+2025-04-27 16:21:31,449 - INFO - Registering user 33
+2025-04-27 16:21:31,467 - INFO - User 33 registered with ID: 3997efa9-e89c-42a3-9991-d5a153a692c3
+2025-04-27 16:21:31,668 - INFO - Registering user 34
+2025-04-27 16:21:31,687 - INFO - User 34 registered with ID: cf4499f7-7c00-448c-8634-687dcbc11329
+2025-04-27 16:21:31,887 - INFO - Registering user 35
+2025-04-27 16:21:31,901 - INFO - User 35 registered with ID: bfde504e-fbed-4681-821b-aa34bb88a2a8
+2025-04-27 16:21:32,102 - INFO - Registering user 36
+2025-04-27 16:21:32,120 - INFO - User 36 registered with ID: b03fe069-ac56-479d-85ee-0ef788633539
+2025-04-27 16:21:32,321 - INFO - Registering user 37
+2025-04-27 16:21:32,339 - INFO - User 37 registered with ID: 274daeb0-d875-4acb-ab92-a88357d30739
+2025-04-27 16:21:32,539 - INFO - Registering user 38
+2025-04-27 16:21:32,559 - INFO - User 38 registered with ID: ec4df751-2bab-4d39-acb1-6d782c714476
+2025-04-27 16:21:32,760 - INFO - Registering user 39
+2025-04-27 16:21:32,776 - INFO - User 39 registered with ID: 475ea8bc-d5b8-45d9-b31a-fa858332c557
+2025-04-27 16:21:32,977 - INFO - Registering user 40
+2025-04-27 16:21:32,996 - INFO - User 40 registered with ID: d117d6fb-03da-4976-9ace-4fbd5e2b4efa
+2025-04-27 16:21:33,197 - INFO - Registering user 41
+2025-04-27 16:21:33,215 - INFO - User 41 registered with ID: 39d5cb1b-a977-45df-88c7-078c99866623
+2025-04-27 16:21:33,416 - INFO - Registering user 42
+2025-04-27 16:21:33,434 - INFO - User 42 registered with ID: 24291cfd-161a-409c-b3e3-b7cd57518235
+2025-04-27 16:21:33,635 - INFO - Registering user 43
+2025-04-27 16:21:33,653 - INFO - User 43 registered with ID: cedd52ca-32bc-4bba-8e6c-cb66ace9731b
+2025-04-27 16:21:33,854 - INFO - Registering user 44
+2025-04-27 16:21:33,873 - INFO - User 44 registered with ID: aa5ea6d7-d5b4-4db6-8af5-5924fa04e157
+2025-04-27 16:21:34,074 - INFO - Registering user 45
+2025-04-27 16:21:34,093 - INFO - User 45 registered with ID: 1c4d414a-855c-41aa-85c1-e3c340273e62
+2025-04-27 16:21:34,295 - INFO - Registering user 46
+2025-04-27 16:21:34,315 - INFO - User 46 registered with ID: f14aa8a5-20e3-4070-af25-54f29801c946
+2025-04-27 16:21:34,516 - INFO - Registering user 47
+2025-04-27 16:21:34,530 - INFO - User 47 registered with ID: a1a75393-91a1-436e-8ef5-c4a5589e2afc
+2025-04-27 16:21:34,730 - INFO - Registering user 48
+2025-04-27 16:21:34,746 - INFO - User 48 registered with ID: 8d105faf-af0e-4a84-86cf-e65ac1488f1e
+2025-04-27 16:21:34,946 - INFO - Registering user 49
+2025-04-27 16:21:34,965 - INFO - User 49 registered with ID: 87605c2c-f61d-47e3-a545-f63f42fd424f
+2025-04-27 16:21:35,165 - INFO - Registering user 50
+2025-04-27 16:21:35,182 - INFO - User 50 registered with ID: a0f8b639-ee33-4426-acac-916f454555be
+2025-04-27 16:21:35,382 - INFO - Registering user 51
+2025-04-27 16:21:35,400 - INFO - User 51 registered with ID: 46788b38-bc61-4312-84b0-3ba77db71313
+2025-04-27 16:21:35,601 - INFO - Registering user 52
+2025-04-27 16:21:35,620 - INFO - User 52 registered with ID: 422372dd-5cb9-4346-97ee-4c10e4860bb4
+2025-04-27 16:21:35,821 - INFO - Registering user 53
+2025-04-27 16:21:35,839 - INFO - User 53 registered with ID: a40917d7-6c61-4db7-a50f-8b2be6942b7e
+2025-04-27 16:21:36,039 - INFO - Registering user 54
+2025-04-27 16:21:36,053 - INFO - User 54 registered with ID: a386b15c-51e1-4303-b569-2ca9a378e117
+2025-04-27 16:21:36,254 - INFO - Registering user 55
+2025-04-27 16:21:36,273 - INFO - User 55 registered with ID: 86bd355f-0934-48df-afc4-da16d1ec6f96
+2025-04-27 16:21:36,473 - INFO - Registering user 56
+2025-04-27 16:21:36,491 - INFO - User 56 registered with ID: 3c659223-7c1b-44df-909a-8da33c903756
+2025-04-27 16:21:36,692 - INFO - Registering user 57
+2025-04-27 16:21:36,706 - INFO - User 57 registered with ID: 22db3ee1-4369-4555-b41e-d1a3723f9879
+2025-04-27 16:21:36,907 - INFO - Registering user 58
+2025-04-27 16:21:36,921 - INFO - User 58 registered with ID: 8b3b3f91-f097-4c33-bd8d-82469e31b5f9
+2025-04-27 16:21:37,122 - INFO - Registering user 59
+2025-04-27 16:21:37,140 - INFO - User 59 registered with ID: f0d56c9f-8b07-45a1-8bac-089cf9e26e0c
+2025-04-27 16:21:37,341 - INFO - Registering user 60
+2025-04-27 16:21:37,360 - INFO - User 60 registered with ID: a318e381-3867-4d1b-8f46-53ac5e017562
+2025-04-27 16:21:37,561 - INFO - Registering user 61
+2025-04-27 16:21:37,578 - INFO - User 61 registered with ID: b67987c5-d8c6-4dbb-9be2-b1c392caefd3
+2025-04-27 16:21:37,779 - INFO - Registering user 62
+2025-04-27 16:21:37,797 - INFO - User 62 registered with ID: f55e0813-928e-42d8-acf7-3b942ee5700f
+2025-04-27 16:21:37,998 - INFO - Registering user 63
+2025-04-27 16:21:38,013 - INFO - User 63 registered with ID: 60bf6b3e-7229-4056-9a75-53e169e0d7da
+2025-04-27 16:21:38,213 - INFO - Registering user 64
+2025-04-27 16:21:38,231 - INFO - User 64 registered with ID: 07e79a68-e866-4aaa-8aaa-50d0cdb27246
+2025-04-27 16:21:38,432 - INFO - Registering user 65
+2025-04-27 16:21:38,446 - INFO - User 65 registered with ID: be697c2a-0d88-4dc8-a006-9e267e95ea6e
+2025-04-27 16:21:38,646 - INFO - Registering user 66
+2025-04-27 16:21:38,661 - INFO - User 66 registered with ID: 2707aaa5-4759-46be-b94c-842517b83982
+2025-04-27 16:21:38,861 - INFO - Registering user 67
+2025-04-27 16:21:38,879 - INFO - User 67 registered with ID: e1bf256f-0f61-456d-8974-35c0c36509f2
+2025-04-27 16:21:39,080 - INFO - Registering user 68
+2025-04-27 16:21:39,094 - INFO - User 68 registered with ID: 3381ffba-7330-414a-921d-349842988626
+2025-04-27 16:21:39,294 - INFO - Registering user 69
+2025-04-27 16:21:39,309 - INFO - User 69 registered with ID: 67055e76-7088-4b15-aa72-d655fa6d9cdf
+2025-04-27 16:21:39,509 - INFO - Registering user 70
+2025-04-27 16:21:39,520 - INFO - User 70 registered with ID: 01b2c58e-346d-4b10-b740-8d6d3d6413b6
+2025-04-27 16:21:39,721 - INFO - Registering user 71
+2025-04-27 16:21:39,739 - INFO - User 71 registered with ID: c0c218e8-aabe-44b0-aa33-cb00659e7297
+2025-04-27 16:21:39,940 - INFO - Registering user 72
+2025-04-27 16:21:39,954 - INFO - User 72 registered with ID: dcb388cb-ce23-49e7-9d1b-7fe2af6a58f0
+2025-04-27 16:21:40,154 - INFO - Registering user 73
+2025-04-27 16:21:40,173 - INFO - User 73 registered with ID: cfa3e9a9-326d-4f20-959f-0cc32d02c9ad
+2025-04-27 16:21:40,373 - INFO - Registering user 74
+2025-04-27 16:21:40,392 - INFO - User 74 registered with ID: ea5f4778-538c-4402-84f6-b3d3ba9c65a4
+2025-04-27 16:21:40,593 - INFO - Registering user 75
+2025-04-27 16:21:40,610 - INFO - User 75 registered with ID: 563c3074-c0f8-4553-877b-f02d87d357f5
+2025-04-27 16:21:40,811 - INFO - Registering user 76
+2025-04-27 16:21:40,831 - INFO - User 76 registered with ID: 159d0c84-2266-412d-8aaf-1a6382d68b31
+2025-04-27 16:21:41,032 - INFO - Registering user 77
+2025-04-27 16:21:41,051 - INFO - User 77 registered with ID: 575b1f42-e116-4998-a7ca-3eed6cc28028
+2025-04-27 16:21:41,252 - INFO - Registering user 78
+2025-04-27 16:21:41,272 - INFO - User 78 registered with ID: 7abd0ada-9589-4e78-9445-e1d897e2d4a0
+2025-04-27 16:21:41,473 - INFO - Registering user 79
+2025-04-27 16:21:41,488 - INFO - User 79 registered with ID: 73fdad48-db53-4038-ad67-b304804ea85a
+2025-04-27 16:21:41,688 - INFO - Registering user 80
+2025-04-27 16:21:41,705 - INFO - User 80 registered with ID: f41b0805-c21b-4dd8-8a3e-9d25ddf88381
+2025-04-27 16:21:41,906 - INFO - Registering user 81
+2025-04-27 16:21:41,925 - INFO - User 81 registered with ID: cbe065cc-6142-4759-a4ce-e392f680c82c
+2025-04-27 16:21:42,126 - INFO - Registering user 82
+2025-04-27 16:21:42,146 - INFO - User 82 registered with ID: b6146fbe-6a59-476f-ac90-8a5017f48bd0
+2025-04-27 16:21:42,347 - INFO - Registering user 83
+2025-04-27 16:21:42,366 - INFO - User 83 registered with ID: 590ceecd-5bb7-42d2-b9e2-00f047e9975d
+2025-04-27 16:21:42,567 - INFO - Registering user 84
+2025-04-27 16:21:42,585 - INFO - User 84 registered with ID: b55979b0-9693-43bd-80fd-2a239b411af2
+2025-04-27 16:21:42,786 - INFO - Registering user 85
+2025-04-27 16:21:42,800 - INFO - User 85 registered with ID: a07c5bbc-40e7-48e2-b6cc-f216fbfbd829
+2025-04-27 16:21:43,001 - INFO - Registering user 86
+2025-04-27 16:21:43,020 - INFO - User 86 registered with ID: 450eed24-e1e7-4f35-b707-212bdc456f31
+2025-04-27 16:21:43,221 - INFO - Registering user 87
+2025-04-27 16:21:43,241 - INFO - User 87 registered with ID: 0664ff49-705e-4765-8d14-64fabf9aac8e
+2025-04-27 16:21:43,442 - INFO - Registering user 88
+2025-04-27 16:21:43,460 - INFO - User 88 registered with ID: 22d38c19-0b23-45dc-a861-e893897398fa
+2025-04-27 16:21:43,661 - INFO - Registering user 89
+2025-04-27 16:21:43,681 - INFO - User 89 registered with ID: a1be10a5-cb20-4f65-9972-1d87ba335325
+2025-04-27 16:21:43,882 - INFO - Registering user 90
+2025-04-27 16:21:43,899 - INFO - User 90 registered with ID: d486ec6a-7c5e-4587-b4b8-50c89cb94bb6
+2025-04-27 16:21:44,100 - INFO - Registering user 91
+2025-04-27 16:21:44,117 - INFO - User 91 registered with ID: 0cee9466-edc2-47ef-b876-442e87025230
+2025-04-27 16:21:44,318 - INFO - Registering user 92
+2025-04-27 16:21:44,336 - INFO - User 92 registered with ID: 4a77448f-71b5-42da-8332-20093f337584
+2025-04-27 16:21:44,537 - INFO - Registering user 93
+2025-04-27 16:21:44,556 - INFO - User 93 registered with ID: b290a40d-b3fc-4412-80c4-8b3f31e319d9
+2025-04-27 16:21:44,757 - INFO - Registering user 94
+2025-04-27 16:21:44,776 - INFO - User 94 registered with ID: 27df7d6b-8688-4cee-98ee-07b5dbf3befc
+2025-04-27 16:21:44,976 - INFO - Registering user 95
+2025-04-27 16:21:44,996 - INFO - User 95 registered with ID: 8bb0264b-d731-4385-9e68-3629544fb1c0
+2025-04-27 16:21:45,196 - INFO - Registering user 96
+2025-04-27 16:21:45,214 - INFO - User 96 registered with ID: d3e13d3a-71c6-4393-9c40-7bec804f5654
+2025-04-27 16:21:45,415 - INFO - Registering user 97
+2025-04-27 16:21:45,431 - INFO - User 97 registered with ID: ea855ad1-04e8-47a3-ace6-2a30567e1b58
+2025-04-27 16:21:45,632 - INFO - Registering user 98
+2025-04-27 16:21:45,648 - INFO - User 98 registered with ID: 6cfb6afa-700b-4557-9099-c1cb87bfb406
+2025-04-27 16:21:45,849 - INFO - Registering user 99
+2025-04-27 16:21:45,865 - INFO - User 99 registered with ID: d7c2e053-89ed-4730-9656-2db2614c49fa
+2025-04-27 16:21:46,066 - INFO - Registering user 100
+2025-04-27 16:21:46,083 - INFO - User 100 registered with ID: 440d8d2e-56ac-47b1-865e-8f8a33d4492b
+2025-04-27 16:21:46,284 - INFO - Step 1 completed: User registration
+2025-04-27 16:21:46,285 - INFO - Selected main user: 86bd355f-0934-48df-afc4-da16d1ec6f96
+2025-04-27 16:21:46,285 - INFO - Login attempt 1 for user 86bd355f-0934-48df-afc4-da16d1ec6f96
+2025-04-27 16:21:46,350 - INFO - Login successful for user 86bd355f-0934-48df-afc4-da16d1ec6f96
+2025-04-27 16:21:46,350 - INFO - Waiting for token replication...
+2025-04-27 16:21:47,478 - INFO - Token found in slave database.
+2025-04-27 16:21:47,479 - INFO - Step 2 completed: Main user login
+2025-04-27 16:21:47,479 - INFO - Adding friend 475ea8bc-d5b8-45d9-b31a-fa858332c557
+2025-04-27 16:21:47,534 - INFO - Friend 475ea8bc-d5b8-45d9-b31a-fa858332c557 added successfully
+2025-04-27 16:21:47,535 - INFO - Adding friend 0cee9466-edc2-47ef-b876-442e87025230
+2025-04-27 16:21:47,556 - INFO - Friend 0cee9466-edc2-47ef-b876-442e87025230 added successfully
+2025-04-27 16:21:47,557 - INFO - Adding friend a318e381-3867-4d1b-8f46-53ac5e017562
+2025-04-27 16:21:47,570 - INFO - Friend a318e381-3867-4d1b-8f46-53ac5e017562 added successfully
+2025-04-27 16:21:47,570 - INFO - Adding friend b67987c5-d8c6-4dbb-9be2-b1c392caefd3
+2025-04-27 16:21:47,582 - INFO - Friend b67987c5-d8c6-4dbb-9be2-b1c392caefd3 added successfully
+2025-04-27 16:21:47,583 - INFO - Adding friend 48c1a45a-8c98-4f1f-967e-82616d52b52f
+2025-04-27 16:21:47,596 - INFO - Friend 48c1a45a-8c98-4f1f-967e-82616d52b52f added successfully
+2025-04-27 16:21:47,596 - INFO - Adding friend 22db3ee1-4369-4555-b41e-d1a3723f9879
+2025-04-27 16:21:47,610 - INFO - Friend 22db3ee1-4369-4555-b41e-d1a3723f9879 added successfully
+2025-04-27 16:21:47,610 - INFO - Adding friend cf4499f7-7c00-448c-8634-687dcbc11329
+2025-04-27 16:21:47,623 - INFO - Friend cf4499f7-7c00-448c-8634-687dcbc11329 added successfully
+2025-04-27 16:21:47,624 - INFO - Adding friend 73cc0b5e-ebc5-4d25-9d30-517a92bec233
+2025-04-27 16:21:47,638 - INFO - Friend 73cc0b5e-ebc5-4d25-9d30-517a92bec233 added successfully
+2025-04-27 16:21:47,638 - INFO - Adding friend fa7a267b-0d45-4d61-9665-72b60c364b87
+2025-04-27 16:21:47,657 - INFO - Friend fa7a267b-0d45-4d61-9665-72b60c364b87 added successfully
+2025-04-27 16:21:47,658 - INFO - Adding friend d486ec6a-7c5e-4587-b4b8-50c89cb94bb6
+2025-04-27 16:21:47,680 - INFO - Friend d486ec6a-7c5e-4587-b4b8-50c89cb94bb6 added successfully
+2025-04-27 16:21:47,680 - INFO - Adding friend 25a06aed-0c89-47a5-b247-cb470bcfbaf7
+2025-04-27 16:21:47,695 - INFO - Friend 25a06aed-0c89-47a5-b247-cb470bcfbaf7 added successfully
+2025-04-27 16:21:47,695 - INFO - Adding friend be697c2a-0d88-4dc8-a006-9e267e95ea6e
+2025-04-27 16:21:47,709 - INFO - Friend be697c2a-0d88-4dc8-a006-9e267e95ea6e added successfully
+2025-04-27 16:21:47,709 - INFO - Adding friend c3ac6646-0045-40ea-a86b-4d3b67b14f86
+2025-04-27 16:21:47,724 - INFO - Friend c3ac6646-0045-40ea-a86b-4d3b67b14f86 added successfully
+2025-04-27 16:21:47,724 - INFO - Adding friend 1c4d414a-855c-41aa-85c1-e3c340273e62
+2025-04-27 16:21:47,739 - INFO - Friend 1c4d414a-855c-41aa-85c1-e3c340273e62 added successfully
+2025-04-27 16:21:47,739 - INFO - Adding friend f55e0813-928e-42d8-acf7-3b942ee5700f
+2025-04-27 16:21:47,753 - INFO - Friend f55e0813-928e-42d8-acf7-3b942ee5700f added successfully
+2025-04-27 16:21:47,753 - INFO - Adding friend cfa3e9a9-326d-4f20-959f-0cc32d02c9ad
+2025-04-27 16:21:47,766 - INFO - Friend cfa3e9a9-326d-4f20-959f-0cc32d02c9ad added successfully
+2025-04-27 16:21:47,766 - INFO - Adding friend aa5ebbe5-7871-4eda-998a-8c7a4d266990
+2025-04-27 16:21:47,782 - INFO - Friend aa5ebbe5-7871-4eda-998a-8c7a4d266990 added successfully
+2025-04-27 16:21:47,782 - INFO - Adding friend 87605c2c-f61d-47e3-a545-f63f42fd424f
+2025-04-27 16:21:47,795 - INFO - Friend 87605c2c-f61d-47e3-a545-f63f42fd424f added successfully
+2025-04-27 16:21:47,796 - INFO - Adding friend 159d0c84-2266-412d-8aaf-1a6382d68b31
+2025-04-27 16:21:47,808 - INFO - Friend 159d0c84-2266-412d-8aaf-1a6382d68b31 added successfully
+2025-04-27 16:21:47,808 - INFO - Adding friend 7682c1b9-e6de-46fc-80d5-bf76d94fa16e
+2025-04-27 16:21:47,825 - INFO - Friend 7682c1b9-e6de-46fc-80d5-bf76d94fa16e added successfully
+2025-04-27 16:21:47,825 - INFO - Step 3 completed: Adding friends
+2025-04-27 16:21:47,926 - INFO - Login attempt 1 for user 475ea8bc-d5b8-45d9-b31a-fa858332c557
+2025-04-27 16:21:47,945 - INFO - Login successful for user 475ea8bc-d5b8-45d9-b31a-fa858332c557
+2025-04-27 16:21:47,946 - INFO - Waiting for token replication...
+2025-04-27 16:21:49,065 - INFO - Token found in slave database.
+2025-04-27 16:21:49,066 - INFO - Friend 475ea8bc-d5b8-45d9-b31a-fa858332c557 logged in
+2025-04-27 16:21:50,683 - INFO - Login attempt 1 for user 0cee9466-edc2-47ef-b876-442e87025230
+2025-04-27 16:21:50,706 - INFO - Login successful for user 0cee9466-edc2-47ef-b876-442e87025230
+2025-04-27 16:21:50,707 - INFO - Waiting for token replication...
+2025-04-27 16:21:51,816 - INFO - Token found in slave database.
+2025-04-27 16:21:51,816 - INFO - Friend 0cee9466-edc2-47ef-b876-442e87025230 logged in
+2025-04-27 16:21:53,607 - INFO - Login attempt 1 for user a318e381-3867-4d1b-8f46-53ac5e017562
+2025-04-27 16:21:53,629 - INFO - Login successful for user a318e381-3867-4d1b-8f46-53ac5e017562
+2025-04-27 16:21:53,629 - INFO - Waiting for token replication...
+2025-04-27 16:21:54,758 - INFO - Token found in slave database.
+2025-04-27 16:21:54,758 - INFO - Friend a318e381-3867-4d1b-8f46-53ac5e017562 logged in
+2025-04-27 16:21:56,313 - INFO - Login attempt 1 for user b67987c5-d8c6-4dbb-9be2-b1c392caefd3
+2025-04-27 16:21:56,336 - INFO - Login successful for user b67987c5-d8c6-4dbb-9be2-b1c392caefd3
+2025-04-27 16:21:56,336 - INFO - Waiting for token replication...
+2025-04-27 16:21:57,459 - INFO - Token found in slave database.
+2025-04-27 16:21:57,459 - INFO - Friend b67987c5-d8c6-4dbb-9be2-b1c392caefd3 logged in
+2025-04-27 16:21:59,152 - INFO - Login attempt 1 for user 48c1a45a-8c98-4f1f-967e-82616d52b52f
+2025-04-27 16:21:59,177 - INFO - Login successful for user 48c1a45a-8c98-4f1f-967e-82616d52b52f
+2025-04-27 16:21:59,177 - INFO - Waiting for token replication...
+2025-04-27 16:22:00,297 - INFO - Token found in slave database.
+2025-04-27 16:22:00,297 - INFO - Friend 48c1a45a-8c98-4f1f-967e-82616d52b52f logged in
+2025-04-27 16:22:02,008 - INFO - Login attempt 1 for user 22db3ee1-4369-4555-b41e-d1a3723f9879
+2025-04-27 16:22:02,031 - INFO - Login successful for user 22db3ee1-4369-4555-b41e-d1a3723f9879
+2025-04-27 16:22:02,031 - INFO - Waiting for token replication...
+2025-04-27 16:22:03,160 - INFO - Token found in slave database.
+2025-04-27 16:22:03,160 - INFO - Friend 22db3ee1-4369-4555-b41e-d1a3723f9879 logged in
+2025-04-27 16:22:04,943 - INFO - Login attempt 1 for user cf4499f7-7c00-448c-8634-687dcbc11329
+2025-04-27 16:22:04,965 - INFO - Login successful for user cf4499f7-7c00-448c-8634-687dcbc11329
+2025-04-27 16:22:04,966 - INFO - Waiting for token replication...
+2025-04-27 16:22:06,091 - INFO - Token found in slave database.
+2025-04-27 16:22:06,091 - INFO - Friend cf4499f7-7c00-448c-8634-687dcbc11329 logged in
+2025-04-27 16:22:07,778 - INFO - Login attempt 1 for user 73cc0b5e-ebc5-4d25-9d30-517a92bec233
+2025-04-27 16:22:07,800 - INFO - Login successful for user 73cc0b5e-ebc5-4d25-9d30-517a92bec233
+2025-04-27 16:22:07,800 - INFO - Waiting for token replication...
+2025-04-27 16:22:08,936 - INFO - Token found in slave database.
+2025-04-27 16:22:08,936 - INFO - Friend 73cc0b5e-ebc5-4d25-9d30-517a92bec233 logged in
+2025-04-27 16:22:10,670 - INFO - Login attempt 1 for user fa7a267b-0d45-4d61-9665-72b60c364b87
+2025-04-27 16:22:10,693 - INFO - Login successful for user fa7a267b-0d45-4d61-9665-72b60c364b87
+2025-04-27 16:22:10,693 - INFO - Waiting for token replication...
+2025-04-27 16:22:11,799 - INFO - Token found in slave database.
+2025-04-27 16:22:11,799 - INFO - Friend fa7a267b-0d45-4d61-9665-72b60c364b87 logged in
+2025-04-27 16:22:13,432 - INFO - Login attempt 1 for user d486ec6a-7c5e-4587-b4b8-50c89cb94bb6
+2025-04-27 16:22:13,454 - INFO - Login successful for user d486ec6a-7c5e-4587-b4b8-50c89cb94bb6
+2025-04-27 16:22:13,455 - INFO - Waiting for token replication...
+2025-04-27 16:22:14,582 - INFO - Token found in slave database.
+2025-04-27 16:22:14,583 - INFO - Friend d486ec6a-7c5e-4587-b4b8-50c89cb94bb6 logged in
+2025-04-27 16:22:16,291 - INFO - Login attempt 1 for user 25a06aed-0c89-47a5-b247-cb470bcfbaf7
+2025-04-27 16:22:16,313 - INFO - Login successful for user 25a06aed-0c89-47a5-b247-cb470bcfbaf7
+2025-04-27 16:22:16,314 - INFO - Waiting for token replication...
+2025-04-27 16:22:17,437 - INFO - Token found in slave database.
+2025-04-27 16:22:17,438 - INFO - Friend 25a06aed-0c89-47a5-b247-cb470bcfbaf7 logged in
+2025-04-27 16:22:19,063 - INFO - Login attempt 1 for user be697c2a-0d88-4dc8-a006-9e267e95ea6e
+2025-04-27 16:22:19,086 - INFO - Login successful for user be697c2a-0d88-4dc8-a006-9e267e95ea6e
+2025-04-27 16:22:19,086 - INFO - Waiting for token replication...
+2025-04-27 16:22:20,210 - INFO - Token found in slave database.
+2025-04-27 16:22:20,210 - INFO - Friend be697c2a-0d88-4dc8-a006-9e267e95ea6e logged in
+2025-04-27 16:22:21,826 - INFO - Login attempt 1 for user c3ac6646-0045-40ea-a86b-4d3b67b14f86
+2025-04-27 16:22:21,850 - INFO - Login successful for user c3ac6646-0045-40ea-a86b-4d3b67b14f86
+2025-04-27 16:22:21,850 - INFO - Waiting for token replication...
+2025-04-27 16:22:22,976 - INFO - Token found in slave database.
+2025-04-27 16:22:22,976 - INFO - Friend c3ac6646-0045-40ea-a86b-4d3b67b14f86 logged in
+2025-04-27 16:22:24,623 - INFO - Login attempt 1 for user 1c4d414a-855c-41aa-85c1-e3c340273e62
+2025-04-27 16:22:24,643 - INFO - Login successful for user 1c4d414a-855c-41aa-85c1-e3c340273e62
+2025-04-27 16:22:24,644 - INFO - Waiting for token replication...
+2025-04-27 16:22:25,752 - INFO - Token found in slave database.
+2025-04-27 16:22:25,752 - INFO - Friend 1c4d414a-855c-41aa-85c1-e3c340273e62 logged in
+2025-04-27 16:22:27,496 - INFO - Login attempt 1 for user f55e0813-928e-42d8-acf7-3b942ee5700f
+2025-04-27 16:22:27,517 - INFO - Login successful for user f55e0813-928e-42d8-acf7-3b942ee5700f
+2025-04-27 16:22:27,518 - INFO - Waiting for token replication...
+2025-04-27 16:22:28,697 - INFO - Token found in slave database.
+2025-04-27 16:22:28,698 - INFO - Friend f55e0813-928e-42d8-acf7-3b942ee5700f logged in
+2025-04-27 16:22:30,337 - INFO - Login attempt 1 for user cfa3e9a9-326d-4f20-959f-0cc32d02c9ad
+2025-04-27 16:22:30,361 - INFO - Login successful for user cfa3e9a9-326d-4f20-959f-0cc32d02c9ad
+2025-04-27 16:22:30,361 - INFO - Waiting for token replication...
+2025-04-27 16:22:31,471 - INFO - Token found in slave database.
+2025-04-27 16:22:31,471 - INFO - Friend cfa3e9a9-326d-4f20-959f-0cc32d02c9ad logged in
+2025-04-27 16:22:33,227 - INFO - Login attempt 1 for user aa5ebbe5-7871-4eda-998a-8c7a4d266990
+2025-04-27 16:22:33,251 - INFO - Login successful for user aa5ebbe5-7871-4eda-998a-8c7a4d266990
+2025-04-27 16:22:33,251 - INFO - Waiting for token replication...
+2025-04-27 16:22:34,367 - INFO - Token found in slave database.
+2025-04-27 16:22:34,367 - INFO - Friend aa5ebbe5-7871-4eda-998a-8c7a4d266990 logged in
+2025-04-27 16:22:36,037 - INFO - Login attempt 1 for user 87605c2c-f61d-47e3-a545-f63f42fd424f
+2025-04-27 16:22:36,061 - INFO - Login successful for user 87605c2c-f61d-47e3-a545-f63f42fd424f
+2025-04-27 16:22:36,062 - INFO - Waiting for token replication...
+2025-04-27 16:22:37,205 - INFO - Token found in slave database.
+2025-04-27 16:22:37,206 - INFO - Friend 87605c2c-f61d-47e3-a545-f63f42fd424f logged in
+2025-04-27 16:22:38,744 - INFO - Login attempt 1 for user 159d0c84-2266-412d-8aaf-1a6382d68b31
+2025-04-27 16:22:38,766 - INFO - Login successful for user 159d0c84-2266-412d-8aaf-1a6382d68b31
+2025-04-27 16:22:38,766 - INFO - Waiting for token replication...
+2025-04-27 16:22:39,876 - INFO - Token found in slave database.
+2025-04-27 16:22:39,877 - INFO - Friend 159d0c84-2266-412d-8aaf-1a6382d68b31 logged in
+2025-04-27 16:22:41,721 - INFO - Login attempt 1 for user 7682c1b9-e6de-46fc-80d5-bf76d94fa16e
+2025-04-27 16:22:41,744 - INFO - Login successful for user 7682c1b9-e6de-46fc-80d5-bf76d94fa16e
+2025-04-27 16:22:41,744 - INFO - Waiting for token replication...
+2025-04-27 16:22:42,876 - INFO - Token found in slave database.
+2025-04-27 16:22:42,876 - INFO - Friend 7682c1b9-e6de-46fc-80d5-bf76d94fa16e logged in
+2025-04-27 16:22:44,482 - INFO - Step 4 completed: Friends creating posts
+2025-04-27 16:22:44,482 - INFO - Getting friends feed with offset=0, limit=1000
+2025-04-27 16:22:44,566 - INFO - Got 1000 posts in feed
+2025-04-27 16:22:44,566 - INFO - Step 5 completed: Fetching friends feed
+2025-04-27 16:22:44,566 - INFO - Login attempt 1 for user 475ea8bc-d5b8-45d9-b31a-fa858332c557
+2025-04-27 16:22:44,576 - INFO - Login successful for user 475ea8bc-d5b8-45d9-b31a-fa858332c557
+2025-04-27 16:22:44,576 - INFO - Waiting for token replication...
+2025-04-27 16:22:45,702 - INFO - Token found in slave database.
+2025-04-27 16:22:47,383 - INFO - Step 6 completed: Creating extra posts
+2025-04-27 16:22:47,384 - INFO - Getting friends feed with offset=0, limit=1000
+2025-04-27 16:22:47,414 - INFO - Got 1000 posts in feed
+2025-04-27 16:22:47,414 - INFO - Step 7 completed: Fetching feed again
+2025-04-27 16:22:47,414 - INFO - Login attempt 1 for user 422372dd-5cb9-4346-97ee-4c10e4860bb4
+2025-04-27 16:22:47,426 - INFO - Login successful for user 422372dd-5cb9-4346-97ee-4c10e4860bb4
+2025-04-27 16:22:47,426 - INFO - Waiting for token replication...
+2025-04-27 16:22:48,569 - INFO - Token found in slave database.
+2025-04-27 16:22:48,569 - INFO - Step 8 completed: New friend login
+2025-04-27 16:23:04,347 - INFO - Step 9 completed: New friend creating posts
+2025-04-27 16:23:04,347 - INFO - Adding friend 422372dd-5cb9-4346-97ee-4c10e4860bb4
+2025-04-27 16:23:04,412 - INFO - Friend 422372dd-5cb9-4346-97ee-4c10e4860bb4 added successfully
+2025-04-27 16:23:04,412 - INFO - Step 10 completed: Adding new friend
+2025-04-27 16:23:04,413 - INFO - Getting friends feed with offset=0, limit=1000
+2025-04-27 16:23:04,441 - INFO - Got 1000 posts in feed
+2025-04-27 16:23:04,441 - INFO - Step 11 completed: Fetching feed after adding new friend
+2025-04-27 16:23:04,441 - INFO - New friend's posts appear in the feed: 1000 posts
+2025-04-27 16:23:04,441 - INFO - Test completed in 100.00 seconds
+2025-04-27 16:23:04,442 - INFO - Test report saved to test_report.html
