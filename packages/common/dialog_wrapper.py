@@ -1,8 +1,8 @@
 import logging
 import os
 from typing import List, Dict, Any
-from clients.dialog_service_client import DialogServiceClient, DialogServiceError
-from middleware.request_id_middleware import get_request_id
+from packages.common.clients.dialog_service_client import DialogServiceClient, DialogServiceError
+from services.api.app.middleware.request_id_middleware import get_request_id
 
 logger = logging.getLogger(__name__)
 

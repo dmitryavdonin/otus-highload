@@ -10,7 +10,7 @@ GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-COMPOSE_FILE="docker-compose.yml"
+COMPOSE_FILE="deploy/docker/docker-compose.yml"
 
 echo -e "${BLUE}🚀 Остановка всех сервисов, запущенных через docker-compose...${NC}"
 echo "=================================================="

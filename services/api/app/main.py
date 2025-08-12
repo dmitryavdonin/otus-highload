@@ -11,13 +11,14 @@ import uuid
 import os
 from dotenv import load_dotenv
 from sqlalchemy import select
-from models import User, AuthToken, Friendship, Post, PostCreateRequest, PostUpdateRequest, PostIdResponse, PostResponse, DialogMessageRequest, DialogMessageResponse
-from db import get_master_session, get_slave_session, get_user_by_id, get_user_by_token, create_auth_token, get_user_friends, save_dialog_message, get_dialog_messages
-from cache import redis_cache
-from services.dialog_wrapper import dialog_wrapper
-from redis_adapter_udf import get_redis_dialog_adapter_udf, init_redis_adapter_udf, close_redis_adapter_udf
-from redis_adapter import init_redis_adapter, close_redis_adapter
-from middleware.request_id_middleware import RequestIdMiddleware, setup_logging_with_request_id
+from packages.common.models import User, AuthToken, Friendship, Post, PostCreateRequest, PostUpdateRequest, PostIdResponse, PostResponse, DialogMessageRequest, DialogMessageResponse
+from packages.common.db import get_master_session, get_slave_session, get_user_by_id, get_user_by_token, create_auth_token, get_user_friends, save_dialog_message, get_dialog_messages
+from packages.common.cache import redis_cache
+from packages.common.dialog_wrapper import dialog_wrapper
+from services.dialog.app.redis_adapter_udf import get_redis_dialog_adapter_udf, init_redis_adapter_udf, close_redis_adapter_udf
+from services.dialog.app.redis_adapter import init_redis_adapter, close_redis_adapter
+from services.api.app.middleware.request_id_middleware import RequestIdMiddleware, setup_logging_with_request_id
+from services.dialog.app.dialog_service import dialog_service
 
 load_dotenv()
 
@@ -39,8 +40,13 @@ async def lifespan(app: FastAPI):
     if not is_redis_available:
         logger.warning("Redis cache is not available. Feed caching will be disabled.")
     
-    # Инициализация dialog_wrapper при запуске
+    # Инициализация dialog_wrapper и фонового паблишера событий диалогов
     await dialog_wrapper.init()
+    try:
+        from services.dialog.app.worker import start_background_publisher
+        await start_background_publisher()
+    except Exception:
+        pass
     
     # Получаем переменные окружения для Redis
     REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
@@ -87,6 +93,11 @@ async def lifespan(app: FastAPI):
     print(f"🔍 DEBUG: Начало завершения работы в lifespan")
     await redis_cache.close()
     await dialog_wrapper.close()
+    try:
+        from services.dialog.app.worker import stop_background_publisher
+        await stop_background_publisher()
+    except Exception:
+        pass
     await close_redis_adapter()
     # await close_redis_adapter_udf()  # отключено для использования нового dialog service
     print(f"🔍 DEBUG: Завершение работы в lifespan завершено")
@@ -158,6 +169,9 @@ class UserResponse(BaseModel):
     birthdate: datetime
     biography: Optional[str] = None
     city: str
+
+class MarkReadRequest(BaseModel):
+    up_to_created_at: datetime
 
 def get_password_hash(password: str) -> str:
     """
@@ -664,6 +678,16 @@ async def get_current_user(user_id: str = Depends(verify_token)) -> User:
     if not user:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
     return user
+
+@app.post("/api/v1/dialogs/{peer_id}/mark_read", tags=["Dialogs"])
+async def mark_dialog_read(
+    peer_id: str,
+    body: MarkReadRequest,
+    current_user_id: str = Depends(verify_token)
+):
+    """Отметить сообщения как прочитанные до указанного времени с пользователем peer_id."""
+    event_id = await dialog_service.mark_read(current_user_id, peer_id, body.up_to_created_at)
+    return {"status": "queued", "event_id": event_id}
 
 @app.post("/dialog/{user_id}/send_udf", response_model=DialogMessageResponse)
 async def send_dialog_message_udf(

@@ -5,7 +5,7 @@ import aiohttp
 from aiohttp import ClientTimeout, ClientError
 import json
 from urllib.parse import urljoin
-from middleware.request_id_middleware import get_request_id
+from services.api.app.middleware.request_id_middleware import get_request_id
 
 logger = logging.getLogger(__name__)
 

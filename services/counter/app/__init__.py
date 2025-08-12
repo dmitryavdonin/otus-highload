@@ -1,0 +1,3 @@
+"""Counter service app module."""
+
+

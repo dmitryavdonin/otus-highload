@@ -14,7 +14,7 @@ NC='\033[0m' # No Color
 
 # Параметры по умолчанию
 BACKEND="redis"
-COMPOSE_FILE="docker-compose.yml"
+COMPOSE_FILE="deploy/docker/docker-compose.yml"
 
 # -- Функции --
 function print_help {

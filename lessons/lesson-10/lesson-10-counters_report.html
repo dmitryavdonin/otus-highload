@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Домашнее задание №10. Отчет по сервису счетчиков</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        h1 {
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            margin-top: 30px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+        pre {
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            overflow-x: auto;
+        }
+        code {
+            font-family: Consolas, Monaco, 'Andale Mono', monospace;
+            background-color: #f8f8f8;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        .highlight {
+            background-color: #ffffcc;
+            padding: 2px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .note {
+            background-color: #e7f3fe;
+            border-left: 6px solid #2196F3;
+            padding: 10px;
+            margin: 15px 0;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border-left: 6px solid #ffc107;
+            padding: 10px;
+            margin: 15px 0;
+        }
+        .success {
+            background-color: #d4edda;
+            border-left: 6px solid #28a745;
+            padding: 10px;
+            margin: 15px 0;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+        .architecture-diagram {
+            text-align: center;
+            margin: 20px 0;
+            font-family: monospace;
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .comparison-table {
+            margin: 20px 0;
+        }
+        .improvement {
+            font-weight: bold;
+        }
+        .improvement.positive {
+            color: #28a745;
+        }
+        .improvement.negative {
+            color: #dc3545;
+        }
+        .step {
+            background-color: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .test-scenario {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .api-endpoint {
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            border-radius: 4px;
+            padding: 8px;
+            margin: 5px 0;
+            font-family: monospace;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            themeVariables: {
+                fontFamily: 'Arial, sans-serif',
+                fontSize: '14px'
+            }
+        });
+    </script>
+</head>
+<body>
+    <h1>OTUS. Highload Architecture</h1>
+    <h2>ДЗ № 10 - Сервис счетчиков</h2>
+    <h3>Авдонин Дмитрий</h3>
+
+    <h2>Задача</h2>
+    <p>Создать сервис счетчиков для хранения и управления счетчиками непрочитанных сообщений:</p>
+    <ul>
+        <li>Разработать сервис счетчиков с учетом высокой нагрузки на чтение</li>
+        <li>Обеспечить консистентность между счетчиком и реальным числом непрочитанных сообщений</li>
+        <li>Использовать паттерн SAGA для обеспечения консистентности</li>
+        <li>Внедрить сервис для отображения счетчиков</li>
+    </ul>
+
+    <h2>Архитектура решения</h2>
+    
+    <h3>SAGA Pattern и Event-Driven Architecture</h3>
+    <div class="architecture-diagram">
+        <div class="mermaid">
+graph TB
+    subgraph "Dialog Service"
+        DS[Dialog Service<br/>Port 8002]
+        DSO[Outbox Table<br/>PostgreSQL]
+        DSP[Event Publisher<br/>Background Worker]
+    end
+
+    subgraph "Message Broker"
+        RMQ[RabbitMQ<br/>Port 5672<br/>Exchange counter_events]
+        MUI[Management UI<br/>Port 15672]
+    end
+
+    subgraph "Counter Service"
+        CS[Counter Service<br/>Port 8003]
+        CSC[Event Consumer<br/>Background Worker]
+        RCS[Redis Storage<br/>DB 2]
+        REC[Reconciliation<br/>Background Process]
+    end
+
+    subgraph "Data Storage"
+        PG[PostgreSQL<br/>Port 5432<br/>Dialogs and Outbox]
+        RD1[Redis DB 1<br/>Dialogs Storage]
+        RD2[Redis DB 2<br/>Counters Storage]
+    end
+
+    subgraph "Load Balancer"
+        NGX[Nginx<br/>Port 8080]
+    end
+
+    subgraph "Main API"
+        API[API Service<br/>Port 8000]
+    end
+
+    API -->|Send Message| DS
+    DS -->|Save Message| RD1
+    DS -->|Add Event| DSO
+    DSP -->|Publish Event| RMQ
+    RMQ -->|Consume Event| CSC
+    CSC -->|Update Counters| RD2
+
+    API -->|Read Counters| CS
+    CS -->|Get Counters| RD2
+
+    REC -->|Check Consistency| RD1
+    REC -->|Update if Needed| RD2
+
+    NGX --> API
+    NGX --> DS
+    NGX --> CS
+
+    DS --> PG
+    DS --> RD1
+    CS --> RD2
+    REC --> RD1
+
+    classDef dialog fill:#e1f5fe
+    classDef counter fill:#f3e5f5
+    classDef storage fill:#fff8e1
+    classDef broker fill:#e8f5e8
+    classDef api fill:#fff3e0
+
+    class DS,DSO,DSP dialog
+    class CS,CSC,RCS,REC counter
+    class PG,RD1,RD2 storage
+    class RMQ,MUI broker
+    class API,NGX api
+        </div>
+    </div>
+
+    <h3>Компоненты системы</h3>
+    <table>
+        <tr>
+            <th>Компонент</th>
+            <th>Порт</th>
+            <th>Назначение</th>
+            <th>Технологии</th>
+        </tr>
+        <tr>
+            <td>Main API Service</td>
+            <td>8000</td>
+            <td>Основное REST API</td>
+            <td>FastAPI, PostgreSQL</td>
+        </tr>
+        <tr>
+            <td>Dialog Service</td>
+            <td>8002</td>
+            <td>Сервис сообщений</td>
+            <td>FastAPI, Redis, PostgreSQL, RabbitMQ</td>
+        </tr>
+        <tr>
+            <td>Counter Service</td>
+            <td>8003</td>
+            <td>Сервис счетчиков</td>
+            <td>FastAPI, Redis, RabbitMQ</td>
+        </tr>
+        <tr>
+            <td>PostgreSQL</td>
+            <td>5432</td>
+            <td>Основная БД</td>
+            <td>PostgreSQL 15</td>
+        </tr>
+        <tr>
+            <td>Redis</td>
+            <td>6379</td>
+            <td>Кэш и счетчики</td>
+            <td>Redis 7</td>
+        </tr>
+        <tr>
+            <td>RabbitMQ</td>
+            <td>5672, 15672</td>
+            <td>Message Broker</td>
+            <td>RabbitMQ 3.13</td>
+        </tr>
+        <tr>
+            <td>Nginx</td>
+            <td>8080</td>
+            <td>Load Balancer</td>
+            <td>Nginx Alpine</td>
+        </tr>
+    </table>
+
+    <h2>Реализация SAGA Pattern</h2>
+
+    <h3>1. Outbox Pattern</h3>
+    <div class="note">
+        <strong>Транзакционная запись событий:</strong>
+        <ul>
+            <li>События записываются в <code>outbox_events</code> таблицу в той же транзакции с основными данными</li>
+            <li>Гарантируется атомарность операции</li>
+            <li>Event Publisher читает события и отправляет в RabbitMQ</li>
+            <li>После успешной отправки события помечаются как processed</li>
+        </ul>
+    </div>
+
+    <pre><code>async def add_outbox_event(event_type: str, payload: Dict[str, Any]) -> str:
+    event_id = str(uuid.uuid4())
+    async with get_session() as session:
+        session.add(OutboxEvent(
+            id=event_id,
+            event_type=event_type,
+            payload=payload,
+            created_at=datetime.utcnow(),
+            processed=False
+        ))
+        await session.commit()
+    return event_id</code></pre>
+
+    <h3>2. Event Types</h3>
+    <table>
+        <tr>
+            <th>Event Type</th>
+            <th>Trigger</th>
+            <th>Payload</th>
+            <th>Counter Action</th>
+        </tr>
+        <tr>
+            <td><code>MessageSent</code></td>
+            <td>Новое сообщение</td>
+            <td><code>from_user_id</code>, <code>to_user_id</code>, <code>message_id</code></td>
+            <td>Increment: +1 to recipient</td>
+        </tr>
+        <tr>
+            <td><code>MessagesRead</code></td>
+            <td>Прочтение сообщений</td>
+            <td><code>user_id</code>, <code>peer_id</code>, <code>delta</code>, <code>last_read_ts</code></td>
+            <td>Decrement: -delta from user</td>
+        </tr>
+    </table>
+
+    <h3>3. Идемпотентность</h3>
+    <div class="success">
+        <strong>Защита от дублирования:</strong>
+        <ul>
+            <li>Каждое событие имеет уникальный <code>event_id</code></li>
+            <li>Counter Service использует Redis SETNX для дедупликации</li>
+            <li>TTL на ключи дедупликации: 24 часа</li>
+            <li>Повторная обработка события игнорируется</li>
+        </ul>
+    </div>
+
+    <h2>Структура проекта</h2>    
+    
+    <h3>Основные компоненты:</h3>
+    <ul>
+        <li><strong>services/counter/app/main.py</strong> - основная логика Counter Service</li>
+        <li><strong>services/counter/app/rabbitmq_consumer.py</strong> - обработчик событий RabbitMQ</li>
+        <li><strong>services/dialog/app/outbox.py</strong> - реализация Outbox Pattern</li>
+        <li><strong>services/dialog/app/publisher.py</strong> - отправка событий</li>
+        <li><strong>services/dialog/app/rabbitmq_publisher.py</strong> - RabbitMQ publisher</li>
+        <li><strong>deploy/docker/docker-compose.yml</strong> - оркестрация всех сервисов</li>
+    </ul>
+
+    <h3>Скрипты автоматизации:</h3>
+    <div class="note">
+        Размещены в директории <code>lessons/lesson-10/</code>
+    </div>
+    <ul>
+        <li><strong>start_service.sh</strong> - запуск системы</li>
+        <li><strong>stop_service.sh</strong> - остановка и очистка системы</li>
+        <li><strong>check_status.sh</strong> - проверка статуса всех сервисов</li>
+        <li><strong>test.sh</strong> - запуск тестов</li>
+    </ul>
+
+    <h2>API Endpoints</h2>
+
+    <h3>Counter Service API</h3>
+    <div class="api-endpoint">
+        <strong>GET</strong> /api/v1/counters/{user_id}
+    </div>
+    <p>Получение всех счетчиков пользователя (общий + по собеседникам)</p>
+
+    <div class="api-endpoint">
+        <strong>GET</strong> /api/v1/counters/{user_id}/peer/{peer_id}
+    </div>
+    <p>Получение счетчика для конкретного собеседника</p>
+
+    <div class="api-endpoint">
+        <strong>POST</strong> /api/v1/counters/mark_read
+    </div>
+    <p>Пометка сообщений как прочитанных (уменьшение счетчика)</p>
+
+    <pre><code>{
+    "user_id": "user-uuid",
+    "peer_user_id": "peer-uuid", 
+    "delta": 3,
+    "last_read_ts": 1699123456.789,
+    "idempotency_key": "optional-key"
+}</code></pre>
+
+    <h3>Internal Events API</h3>
+    <div class="api-endpoint">
+        <strong>POST</strong> /internal/events/message_sent
+    </div>
+    <p>Обработка события отправки сообщения</p>
+
+    <div class="api-endpoint">
+        <strong>POST</strong> /internal/events/messages_read
+    </div>
+    <p>Обработка события прочтения сообщений</p>
+
+    <h2>Схема данных в Redis</h2>
+
+    <h3>Структура ключей</h3>
+    <table>
+        <tr>
+            <th>Ключ</th>
+            <th>Тип</th>
+            <th>Назначение</th>
+            <th>Пример</th>
+        </tr>
+        <tr>
+            <td><code>user:{user_id}:unread_total</code></td>
+            <td>String</td>
+            <td>Общее количество непрочитанных</td>
+            <td><code>user:123:unread_total → "5"</code></td>
+        </tr>
+        <tr>
+            <td><code>user:{user_id}:unread_by_peer</code></td>
+            <td>Hash</td>
+            <td>Счетчики по собеседникам</td>
+            <td><code>user:123:unread_by_peer → {peer1: "3", peer2: "2"}</code></td>
+        </tr>
+        <tr>
+            <td><code>user:{user_id}:last_read:{peer_id}</code></td>
+            <td>String</td>
+            <td>Timestamp последнего прочтения</td>
+            <td><code>user:123:last_read:peer1 → "1699123456.789"</code></td>
+        </tr>
+        <tr>
+            <td><code>event_dedup:{event_id}</code></td>
+            <td>String</td>
+            <td>Дедупликация событий (TTL 24h)</td>
+            <td><code>event_dedup:uuid → "1"</code></td>
+        </tr>
+    </table>
+
+    <h3>Операции с Redis</h3>
+    <div class="note">
+        <strong>Атомарные операции через Pipeline:</strong>
+        <ul>
+            <li><strong>Message Sent:</strong> INCR total + HINCRBY by_peer</li>
+            <li><strong>Messages Read:</strong> SET total + HSET by_peer (с защитой от отрицательных значений)</li>
+            <li><strong>Deduplication:</strong> SETNX + EXPIRE</li>
+        </ul>
+    </div>
+
+    <h2>Reconciliation механизм</h2>
+
+    <h3>Периодическая сверка</h3>
+    <div class="warning">
+        <strong>Обеспечение eventual consistency:</strong>
+        <ul>
+            <li>Каждые 60 секунд (настраивается через RECONCILIATION_INTERVAL_SEC)</li>
+            <li>Сравнение счетчиков с реальными данными в Redis DB1 (диалоги)</li>
+            <li>Автоматическое исправление расхождений</li>
+            <li>Учет last_read_ts для точного подсчета</li>
+        </ul>
+    </div>
+
+    <pre><code>async def reconcile_all(self):
+    # Поиск всех пользователей с счетчиками
+    pattern = "user:*:unread_by_peer"
+    for user_id, by_peer_key in users_pairs:
+        by_peer = await self.redis_counters.hgetall(by_peer_key)
+        corrected_by_peer = {}
+        
+        for peer_id, current_count in by_peer.items():
+            # Получаем last_read timestamp
+            last_read = await self.redis_counters.get(
+                self._key_last_read(user_id, peer_id)
+            )
+            last_ts = float(last_read) if last_read else 0.0
+            
+            # Подсчитываем реальное количество непрочитанных
+            dialog_key = self._dialog_key(user_id, peer_id)
+            raw_msgs = await self.redis_dialogs.zrangebyscore(
+                dialog_key, min=last_ts, max="+inf"
+            )
+            
+            # Фильтруем сообщения для этого пользователя
+            actual_count = sum(1 for m in raw_msgs 
+                             if json.loads(m).get("to_user_id") == user_id)
+            corrected_by_peer[peer_id] = actual_count
+        
+        # Атомарное обновление
+        total_val = sum(corrected_by_peer.values())
+        pipe = self.redis_counters.pipeline()
+        pipe.hset(by_peer_key, mapping=corrected_by_peer)
+        pipe.set(self._key_total(user_id), total_val)
+        await pipe.execute()</code></pre>
+
+    <h2>Результаты тестирования</h2>
+    <div class="test-scenario">
+        <h4>Тест 1: Базовый сценарий</h4>
+        <strong>Описание:</strong> Проверка основного flow отправки и прочтения одного сообщения
+        <ul>
+            <li>Регистрация 2 пользователей</li>
+            <li>Отправка 1 сообщения User1 → User2</li>
+            <li>Проверка: <code>total_unread = 1, by_peer[User1] = 1</code></li>
+            <li>Пометка как прочитанного (delta=1)</li>
+            <li>Проверка: <code>total_unread = 0, by_peer[User1] = 0</code></li>
+        </ul>
+        <div class="success">✅ ПРОЙДЕН: Базовая функциональность работает корректно</div>
+    </div>
+
+    <div class="test-scenario">
+        <h4>Тест 2: Множественные сообщения</h4>
+        <strong>Описание:</strong> Проверка частичного чтения сообщений
+        <ul>
+            <li>Отправка 10 сообщений Multi1 → Multi2</li>
+            <li>Проверка накопления: <code>total_unread = 10</code></li>
+            <li>Частичное чтение #1: 3 сообщения → остается 7</li>
+            <li>Частичное чтение #2: 4 сообщения → остается 3</li>
+            <li>Полное чтение: 3 сообщения → остается 0</li>
+        </ul>
+        <div class="success">✅ ПРОЙДЕН: Delta операции и частичное чтение работают</div>
+    </div>
+
+    <div class="test-scenario">
+        <h4>Тест 3: Множественные отправители</h4>
+        <strong>Описание:</strong> Проверка счетчиков по собеседникам
+        <ul>
+            <li>Sender1 отправляет 5 сообщений → Receiver</li>
+            <li>Sender2 отправляет 3 сообщения → Receiver</li>
+            <li>Проверка: <code>total = 8, by_peer[Sender1] = 5, by_peer[Sender2] = 3</code></li>
+            <li>Селективное чтение 2 сообщений от Sender1</li>
+            <li>Проверка: <code>total = 6, by_peer[Sender1] = 3, by_peer[Sender2] = 3</code></li>
+        </ul>
+        <div class="success">✅ ПРОЙДЕН: By-peer счетчики и селективное чтение работают</div>
+    </div>
+
+    <h3>Результаты всех тестов</h3>
+    <pre><code>=== Test Summary ===
+Passed: 3/3
+ALL TESTS PASSED! 🎉
+
+✅ Basic scenario passed
+✅ Multi-message scenario passed - demonstrated partial reads!
+✅ Multiple senders scenario passed - demonstrated by_peer counters!</code></pre>
+
+    <h2>Производительность и масштабируемость</h2>
+
+    <h3>Оптимизации для высоких нагрузок</h3>
+    <table>
+        <tr>
+            <th>Аспект</th>
+            <th>Решение</th>
+            <th>Преимущество</th>
+        </tr>
+        <tr>
+            <td>Хранение счетчиков</td>
+            <td>Redis (в памяти)</td>
+            <td>O(1) операции чтения</td>
+        </tr>
+        <tr>
+            <td>Атомарность</td>
+            <td>Redis Pipeline</td>
+            <td>Batch операции за один RTT</td>
+        </tr>
+        <tr>
+            <td>Разделение данных</td>
+            <td>Отдельные Redis DB</td>
+            <td>Изоляция диалогов и счетчиков</td>
+        </tr>
+        <tr>
+            <td>Асинхронность</td>
+            <td>FastAPI + asyncio</td>
+            <td>Высокая concurrency</td>
+        </tr>
+        <tr>
+            <td>Event processing</td>
+            <td>RabbitMQ</td>
+            <td>Reliable delivery + scaling</td>
+        </tr>
+        <tr>
+            <td>Идемпотентность</td>
+            <td>Redis SETNX + TTL</td>
+            <td>Защита от дублирования</td>
+        </tr>
+    </table>
+
+    <h3>Мониторинг и наблюдаемость</h3>
+    <ul>
+        <li><strong>Health checks:</strong> /health endpoint для всех сервисов</li>
+        <li><strong>RabbitMQ Management:</strong> http://localhost:15672 (admin/admin123)</li>
+        <li><strong>Docker metrics:</strong> через docker stats</li>
+        <li><strong>Service status:</strong> ./check_status.sh</li>
+    </ul>
+
+    <h2>Последовательность действий для запуска и тестирования</h2>
+
+    <h3>1. Запуск системы</h3>
+    <pre><code>cd lessons/lesson-10
+./start_service.sh</code></pre>
+    <p>Автоматически:</p>
+    <ul>
+        <li>Собирает Docker образы</li>
+        <li>Запускает все сервисы</li>
+        <li>Ждет готовности health checks</li>
+        <li>Проверяет доступность API</li>
+    </ul>
+
+    <h3>2. Проверка статуса</h3>
+    <pre><code>./check_status.sh</code></pre>
+    <p>Показывает:</p>
+    <ul>
+        <li>Статус всех контейнеров</li>
+        <li>Health check всех сервисов</li>
+        <li>Информацию о RabbitMQ</li>
+        <li>Docker Compose статус</li>
+    </ul>
+
+    <h3>3. Запуск тестов</h3>
+    <pre><code>./test.sh</code></pre>
+    <p>Автоматически:</p>
+    <ul>
+        <li>Проверяет состояние сервисов</li>
+        <li>Запускает test_counters.py</li>
+    </ul>
+
+    <h3>4. Остановка системы</h3>
+    <pre><code>./stop_service.sh</code></pre>
+
+    <h2>Логи работы системы</h2>
+
+    <h3>Ключевые компоненты логирования</h3>
+    <table>
+        <tr>
+            <th>Сервис</th>
+            <th>Команда</th>
+            <th>Что логируется</th>
+        </tr>
+        <tr>
+            <td>Counter Service</td>
+            <td><code>docker logs docker-counter-service-1</code></td>
+            <td>Event processing, Redis operations, идемпотентность</td>
+        </tr>
+        <tr>
+            <td>Dialog Service</td>
+            <td><code>docker logs docker-dialog-service-1</code></td>
+            <td>Message operations, Outbox events, RabbitMQ publishing</td>
+        </tr>
+        <tr>
+            <td>RabbitMQ</td>
+            <td><code>docker logs docker-rabbitmq-1</code></td>
+            <td>Queue operations, connections, message routing</td>
+        </tr>
+        <tr>
+            <td>Main API</td>
+            <td><code>docker logs docker-monolith-1</code></td>
+            <td>HTTP requests, authentication, business logic</td>
+        </tr>
+    </table>
+
+    <h3>Примеры логов успешной работы</h3>
+
+    <h4>Counter Service - обработка событий</h4>
+    <pre><code>INFO:     172.19.0.7:50358 - "POST /internal/events/message_sent HTTP/1.1" 200 OK
+INFO:     Started RabbitMQ consumer successfully
+INFO:     Event processed: MessageSent → user:uuid → increment counters</code></pre>
+
+    <h4>Dialog Service - отправка событий</h4>
+    <pre><code>INFO:     Publishing event: counter.MessageSent
+INFO:     Event added to outbox: MessageSent
+INFO:     Message saved successfully: msg_id=uuid</code></pre>
+
+    <h4>Тестирование - успешные сценарии</h4>
+    <pre><code>Registering users...
+Registration successful: user_id=6e5368c9-bdb2-4c07-9bbf-6d1f2d2d76f3
+Send message U1 -> U2...
+MessageId=3b95007b-7e6b-46ad-b24d-790c2f0930a7
+Waiting for counter increment...
+Counters: total=1 by_peer[6e5368c9-bdb2-4c07-9bbf-6d1f2d2d76f3]=1
+SUCCESS: Basic scenario passed</code></pre>
+
+    <h2>Выводы</h2>
+
+    <div class="success">
+        <h3>✅ Успешно реализовано:</h3>
+        <ul>
+            <li><strong>Counter Service</strong> с REST API и высокой производительностью чтения</li>
+            <li><strong>SAGA Pattern</strong> с Outbox Pattern и RabbitMQ для надежной доставки событий</li>
+            <li><strong>Event-Driven Architecture</strong> с асинхронной обработкой событий</li>
+            <li><strong>Идемпотентность</strong> с защитой от дублирования событий</li>
+            <li><strong>Reconciliation</strong> для обеспечения eventual consistency</li>
+            <li><strong>By-peer счетчики</strong> с поддержкой селективного чтения</li>
+            <li><strong>Redis оптимизации</strong> для высоких нагрузок на чтение</li>
+            <li><strong>Comprehensive testing</strong> с 3 E2E сценариями</li>
+        </ul>
+    </div>
+
+    <h3>Соответствие требованиям задания</h3>
+    
+    <table>
+        <tr>
+            <th>Требование</th>
+            <th>Статус</th>
+            <th>Комментарий</th>
+        </tr>
+        <tr>
+            <td>Разработать сервис счетчиков</td>
+            <td><span class="improvement positive">✅ ВЫПОЛНЕНО</span></td>
+            <td>FastAPI сервис на порту 8003</td>
+        </tr>
+        <tr>
+            <td>Учесть высокую нагрузку на чтение</td>
+            <td><span class="improvement positive">✅ ВЫПОЛНЕНО</span></td>
+            <td>Redis хранилище, O(1) операции</td>
+        </tr>
+        <tr>
+            <td>Обеспечить консистентность</td>
+            <td><span class="improvement positive">✅ ВЫПОЛНЕНО</span></td>
+            <td>SAGA + Outbox + Reconciliation</td>
+        </tr>
+        <tr>
+            <td>Использовать SAGA pattern</td>
+            <td><span class="improvement positive">✅ ВЫПОЛНЕНО</span></td>
+            <td>Event-driven с RabbitMQ</td>
+        </tr>
+        <tr>
+            <td>Внедрить сервис отображения</td>
+            <td><span class="improvement positive">✅ ВЫПОЛНЕНО</span></td>
+            <td>REST API с полной функциональностью</td>
+        </tr>
+        <tr>
+            <td>Обеспечение отказоустойчивости</td>
+            <td><span class="improvement positive">✅ ВЫПОЛНЕНО</span></td>
+            <td>Retry логика, идемпотентность</td>
+        </tr>
+        <tr>
+            <td>Использование кешей</td>
+            <td><span class="improvement positive">✅ ВЫПОЛНЕНО</span></td>
+            <td>Redis для счетчиков и диалогов</td>
+        </tr>
+    </table>
+
+</body>
+</html>

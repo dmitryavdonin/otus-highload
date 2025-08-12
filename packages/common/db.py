@@ -8,27 +8,15 @@ import uuid
 from typing import List
 import os
 
-# Выбираем модуль базы данных в зависимости от переменной окружения
-USE_HAPROXY = os.getenv("USE_HAPROXY", "false").lower() == "true"
+# Стандартный режим для ДЗ-10
+from packages.common.database import get_slave_session, get_master_session
+print("🔧 Загружен модуль packages.common.database")
 
-if USE_HAPROXY:
-    # Для урока 9 с HAProxy
-    import sys
-    import os
-    sys.path.append(os.path.join(os.path.dirname(__file__), 'lesson-09'))
-    from database_ha import get_slave_session, get_master_session, get_db_info
-    print("🔧 Загружен модуль database_ha для работы с HAProxy")
-else:
-    # Стандартный режим
-    from database import get_slave_session, get_master_session
-    print("🔧 Загружен стандартный модуль database")
-    
-    # Заглушка для get_db_info в стандартном режиме
-    def get_db_info():
-        return {"mode": "standard", "use_haproxy": False}
+def get_db_info():
+    return {"mode": "standard", "use_haproxy": False}
 
 # Import models after database is initialized to avoid circular imports
-from models import User, AuthToken, Friendship, DialogMessage
+from packages.common.models import User, AuthToken, Friendship, DialogMessage
 
 async def get_user_by_id(user_id: str) -> User:
     async with get_slave_session() as session:

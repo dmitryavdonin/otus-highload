@@ -3,7 +3,7 @@ import json
 import logging
 from typing import Dict, Any, Callable, Optional
 from datetime import datetime
-from message_queue import message_queue
+from packages.common.message_queue import message_queue
 
 logger = logging.getLogger(__name__)
 

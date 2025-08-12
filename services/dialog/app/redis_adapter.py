@@ -9,7 +9,7 @@ import time
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional, Tuple
 import redis.asyncio as redis
-from models import DialogMessage, DialogMessageResponse
+from packages.common.models import DialogMessage, DialogMessageResponse
 
 
 class RedisDialogAdapter:

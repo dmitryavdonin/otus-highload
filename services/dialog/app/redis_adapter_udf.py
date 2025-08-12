@@ -9,7 +9,7 @@ import traceback
 from datetime import datetime
 from typing import List, Dict, Optional
 import redis.asyncio as redis
-from models import DialogMessageResponse
+from packages.common.models import DialogMessageResponse
 
 
 class RedisDialogAdapterUDF:

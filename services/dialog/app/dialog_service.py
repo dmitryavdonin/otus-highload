@@ -2,7 +2,10 @@
 # -*- coding: utf-8 -*-
 
 from typing import List
-from models import DialogMessageResponse
+from packages.common.models import DialogMessageResponse
+from .outbox import add_outbox_event, ensure_outbox_table
+import uuid
+from datetime import datetime
 
 
 class DialogService:
@@ -18,11 +21,16 @@ class DialogService:
     async def init(self):
         """Инициализация сервиса диалогов"""
         # Создаем новый экземпляр Config во время выполнения
-        from config import Config
+        from packages.common.config import Config
         config = Config()
+        # ensure outbox table exists
+        try:
+            await ensure_outbox_table()
+        except Exception:
+            pass
         
         if config.is_redis_backend():
-            from redis_adapter import init_redis_adapter
+            from services.dialog.app.redis_adapter import init_redis_adapter
             redis_url = config.get_redis_url()
             print(f"🔍 Отладка dialog_service: config.get_redis_url() = {redis_url}")
             await init_redis_adapter(redis_url)
@@ -35,7 +43,7 @@ class DialogService:
         from config import Config
         config = Config()
         if config.is_redis_backend():
-            from redis_adapter import close_redis_adapter
+            from services.dialog.app.redis_adapter import close_redis_adapter
             await close_redis_adapter()
     
     async def save_dialog_message(self, from_user_id: str, to_user_id: str, text: str) -> str:
@@ -50,14 +58,29 @@ class DialogService:
         Returns:
             ID созданного сообщения
         """
-        from config import Config
+        from packages.common.config import Config
         config = Config()
         if config.is_redis_backend():
-            from redis_adapter import redis_dialog_adapter
-            return await redis_dialog_adapter.save_dialog_message(from_user_id, to_user_id, text)
+            from services.dialog.app.redis_adapter import redis_dialog_adapter
+            message_id = await redis_dialog_adapter.save_dialog_message(from_user_id, to_user_id, text)
+            # add outbox event
+            await add_outbox_event('MessageSent', {
+                'event_id': str(uuid.uuid4()),
+                'from_user_id': from_user_id,
+                'to_user_id': to_user_id,
+                'message_id': message_id
+            })
+            return message_id
         else:
-            from db import save_dialog_message
-            return await save_dialog_message(from_user_id, to_user_id, text)
+            from packages.common.db import save_dialog_message
+            message_id = await save_dialog_message(from_user_id, to_user_id, text)
+            await add_outbox_event('MessageSent', {
+                'event_id': str(uuid.uuid4()),
+                'from_user_id': from_user_id,
+                'to_user_id': to_user_id,
+                'message_id': message_id
+            })
+            return message_id
     
     async def get_dialog_messages(self, user_id1: str, user_id2: str) -> List[DialogMessageResponse]:
         """
@@ -70,16 +93,16 @@ class DialogService:
         Returns:
             Список сообщений диалога
         """
-        from config import Config
+        from packages.common.config import Config
         config = Config()
         if config.is_redis_backend():
-            from redis_adapter import redis_dialog_adapter
+            from services.dialog.app.redis_adapter import redis_dialog_adapter
             return await redis_dialog_adapter.get_dialog_messages(
                 user_id1, user_id2, limit=config.DIALOG_MESSAGES_LIMIT
             )
         else:
-            from db import get_dialog_messages
-            from models import DialogMessageResponse
+            from packages.common.db import get_dialog_messages
+            from packages.common.models import DialogMessageResponse
             
             # Получаем сообщения из PostgreSQL
             messages = await get_dialog_messages(user_id1, user_id2)
@@ -98,6 +121,20 @@ class DialogService:
             
             # Ограничиваем количество сообщений
             return response_messages[-config.DIALOG_MESSAGES_LIMIT:]
+
+    async def mark_read(self, user_id: str, peer_user_id: str, up_to_created_at: datetime) -> str:
+        """Фиксируем факт прочтения сообщений до указанного времени и публикуем событие."""
+        # В реальном сервисе здесь должна быть фиксация маркера прочтения в БД/Redis.
+        # Для MVP формируем событие с оценочным delta=0 (пересчетом займется Counter Service через сверку/будущий апгрейд).
+        event_id = str(uuid.uuid4())
+        await add_outbox_event('MessagesRead', {
+            'event_id': event_id,
+            'user_id': user_id,
+            'peer_user_id': peer_user_id,
+            'delta': 0,
+            'last_read_ts': up_to_created_at.timestamp()
+        })
+        return event_id
     
     async def get_dialog_stats(self) -> dict:
         """
